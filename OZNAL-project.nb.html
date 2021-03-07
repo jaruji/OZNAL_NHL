@@ -289,10 +289,33 @@ $ venue_time_zone_tz     &lt;chr&gt; &quot;CDT&quot;, &quot;EDT&quot;, &quot;CDT
 <!-- rnb-frame-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p><a href="https://towardsdatascience.com/data-cleaning-with-r-and-the-tidyverse-detecting-missing-values-ea23c519bc62" class="uri">https://towardsdatascience.com/data-cleaning-with-r-and-the-tidyverse-detecting-missing-values-ea23c519bc62</a> tu je dajaky source</p>
+<p><a href="https://towardsdatascience.com/data-cleaning-with-r-and-the-tidyverse-detecting-missing-values-ea23c519bc62" class="uri">https://towardsdatascience.com/data-cleaning-with-r-and-the-tidyverse-detecting-missing-values-ea23c519bc62</a> tu je dajaky source Je potrebne zistit vsetky unikatne hodnoty v stlpcoch, to nam moze pomoct pri konvertovani kvantitativnych atributov na kvalitativne</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudW5pcXVlKGdhbWUkdHlwZSlcbmBgYCJ9 -->
+<pre class="r"><code>unique(game$type)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiUlwiIFwiUFwiIFwiQVwiXG4ifQ== -->
+<pre><code>[1] &quot;R&quot; &quot;P&quot; &quot;A&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudW5pcXVlKGdhbWUkaG9tZV9yaW5rX3NpZGVfc3RhcnQpXG5gYGAifQ== -->
+<pre class="r"><code>unique(game$home_rink_side_start)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwicmlnaHRcIiBcImxlZnRcIiAgTkEgICAgIFxuIn0= -->
+<pre><code>[1] &quot;right&quot; &quot;left&quot;  NA     </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudW5pcXVlKGdhbWUkb3V0Y29tZSlcbmBgYCJ9 -->
+<pre class="r"><code>unique(game$outcome)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiaG9tZSB3aW4gUkVHXCIgXCJhd2F5IHdpbiBPVFwiICBcImF3YXkgd2luIFJFR1wiIFwiaG9tZSB3aW4gT1RcIiAgXCJ0YmMgd2luIE9UXCIgICBcInRiYyB3aW4gdGJjXCIgIFwiaG9tZSB3aW4gdGJjXCIgXCJhd2F5IHdpbiB0YmNcIlxuIn0= -->
+<pre><code>[1] &quot;home win REG&quot; &quot;away win OT&quot;  &quot;away win REG&quot; &quot;home win OT&quot;  &quot;tbc win OT&quot;   &quot;tbc win tbc&quot;  &quot;home win tbc&quot; &quot;away win tbc&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Vidime ze atribut home_rink_side_start by sa dal konvertovat na kvalitativny atribut, treba vsak vyriesit chybajuce hodnoty (median). Atribut home win/away win by sa dal rozdelit na viacero binarnych stlpcov (vyhral home/away 0/1, OT 0/1, atd.).</p>
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIlIgTm90ZWJvb2siDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQpUaGlzIGlzIGFuIFtSIE1hcmtkb3duXShodHRwOi8vcm1hcmtkb3duLnJzdHVkaW8uY29tKSBOb3RlYm9vay4gV2hlbiB5b3UgZXhlY3V0ZSBjb2RlIHdpdGhpbiB0aGUgbm90ZWJvb2ssIHRoZSByZXN1bHRzIGFwcGVhciBiZW5lYXRoIHRoZSBjb2RlLiANCg0KVHJ5IGV4ZWN1dGluZyB0aGlzIGNodW5rIGJ5IGNsaWNraW5nIHRoZSAqUnVuKiBidXR0b24gd2l0aGluIHRoZSBjaHVuayBvciBieSBwbGFjaW5nIHlvdXIgY3Vyc29yIGluc2lkZSBpdCBhbmQgcHJlc3NpbmcgKkN0cmwrU2hpZnQrRW50ZXIqLiANCg0KYGBge3J9DQojbmVqYWtlIGtuaXpuaWNlDQpsaWJyYXJ5KGRwbHkpDQpsaWJyYXJ5KHRpZHl2ZXJzZSkNCmBgYA0KDQpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ3RybCtBbHQrSSouDQoNCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ3RybCtTaGlmdCtLKiB0byBwcmV2aWV3IHRoZSBIVE1MIGZpbGUpLg0KDQpUaGUgcHJldmlldyBzaG93cyB5b3UgYSByZW5kZXJlZCBIVE1MIGNvcHkgb2YgdGhlIGNvbnRlbnRzIG9mIHRoZSBlZGl0b3IuIENvbnNlcXVlbnRseSwgdW5saWtlICpLbml0KiwgKlByZXZpZXcqIGRvZXMgbm90IHJ1biBhbnkgUiBjb2RlIGNodW5rcy4gSW5zdGVhZCwgdGhlIG91dHB1dCBvZiB0aGUgY2h1bmsgd2hlbiBpdCB3YXMgbGFzdCBydW4gaW4gdGhlIGVkaXRvciBpcyBkaXNwbGF5ZWQuDQpgYGB7cn0NCg0KZ2FtZSA8LSByZWFkLmNzdignQzovVXNlcnMvNjQzMHUvRGVza3RvcC9PWk5BTC9wcm9qZWt0L2RhdGEvZ2FtZS5jc3YnKQ0KaGVhZChnYW1lKQ0KYGBgDQpgYGB7cn0NCmRpbShnYW1lKQ0KZ2xpbXBzZShnYW1lKQ0KYGBgDQoNCmBgYHtyfQ0KZGlzdGluY3QoZ2FtZSkNCmBgYA0KaHR0cHM6Ly90b3dhcmRzZGF0YXNjaWVuY2UuY29tL2RhdGEtY2xlYW5pbmctd2l0aC1yLWFuZC10aGUtdGlkeXZlcnNlLWRldGVjdGluZy1taXNzaW5nLXZhbHVlcy1lYTIzYzUxOWJjNjIgdHUgamUgZGFqYWt5IHNvdXJjZQ0K</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlIgTm90ZWJvb2siDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQpUaGlzIGlzIGFuIFtSIE1hcmtkb3duXShodHRwOi8vcm1hcmtkb3duLnJzdHVkaW8uY29tKSBOb3RlYm9vay4gV2hlbiB5b3UgZXhlY3V0ZSBjb2RlIHdpdGhpbiB0aGUgbm90ZWJvb2ssIHRoZSByZXN1bHRzIGFwcGVhciBiZW5lYXRoIHRoZSBjb2RlLiANCg0KVHJ5IGV4ZWN1dGluZyB0aGlzIGNodW5rIGJ5IGNsaWNraW5nIHRoZSAqUnVuKiBidXR0b24gd2l0aGluIHRoZSBjaHVuayBvciBieSBwbGFjaW5nIHlvdXIgY3Vyc29yIGluc2lkZSBpdCBhbmQgcHJlc3NpbmcgKkN0cmwrU2hpZnQrRW50ZXIqLiANCg0KYGBge3J9DQojbmVqYWtlIGtuaXpuaWNlDQpsaWJyYXJ5KGRwbHkpDQpsaWJyYXJ5KHRpZHl2ZXJzZSkNCmBgYA0KDQpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ3RybCtBbHQrSSouDQoNCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ3RybCtTaGlmdCtLKiB0byBwcmV2aWV3IHRoZSBIVE1MIGZpbGUpLg0KDQpUaGUgcHJldmlldyBzaG93cyB5b3UgYSByZW5kZXJlZCBIVE1MIGNvcHkgb2YgdGhlIGNvbnRlbnRzIG9mIHRoZSBlZGl0b3IuIENvbnNlcXVlbnRseSwgdW5saWtlICpLbml0KiwgKlByZXZpZXcqIGRvZXMgbm90IHJ1biBhbnkgUiBjb2RlIGNodW5rcy4gSW5zdGVhZCwgdGhlIG91dHB1dCBvZiB0aGUgY2h1bmsgd2hlbiBpdCB3YXMgbGFzdCBydW4gaW4gdGhlIGVkaXRvciBpcyBkaXNwbGF5ZWQuDQpgYGB7cn0NCg0KZ2FtZSA8LSByZWFkLmNzdignQzovVXNlcnMvNjQzMHUvRGVza3RvcC9PWk5BTC9wcm9qZWt0L2RhdGEvZ2FtZS5jc3YnKQ0KaGVhZChnYW1lKQ0KYGBgDQpgYGB7cn0NCmRpbShnYW1lKQ0KZ2xpbXBzZShnYW1lKQ0KYGBgDQoNCmBgYHtyfQ0KZGlzdGluY3QoZ2FtZSkNCmBgYA0KaHR0cHM6Ly90b3dhcmRzZGF0YXNjaWVuY2UuY29tL2RhdGEtY2xlYW5pbmctd2l0aC1yLWFuZC10aGUtdGlkeXZlcnNlLWRldGVjdGluZy1taXNzaW5nLXZhbHVlcy1lYTIzYzUxOWJjNjIgdHUgamUgZGFqYWt5IHNvdXJjZQ0KSmUgcG90cmVibmUgemlzdGl0IHZzZXRreSB1bmlrYXRuZSBob2Rub3R5IHYgc3RscGNvY2gsIHRvIG5hbSBtb3plIHBvbW9jdCBwcmkga29udmVydG92YW5pIGt2YW50aXRhdGl2bnljaCBhdHJpYnV0b3YgbmEga3ZhbGl0YXRpdm5lDQpgYGB7cn0NCnVuaXF1ZShnYW1lJHR5cGUpDQp1bmlxdWUoZ2FtZSRob21lX3Jpbmtfc2lkZV9zdGFydCkNCnVuaXF1ZShnYW1lJG91dGNvbWUpDQpgYGANClZpZGltZSB6ZSBhdHJpYnV0IGhvbWVfcmlua19zaWRlX3N0YXJ0IGJ5IHNhIGRhbCBrb252ZXJ0b3ZhdCBuYSBrdmFsaXRhdGl2bnkgYXRyaWJ1dCwgdHJlYmEgdnNhayB2eXJpZXNpdCBjaHliYWp1Y2UgaG9kbm90eSAobWVkaWFuKS4gQXRyaWJ1dCBob21lIHdpbi9hd2F5IHdpbiBieSBzYSBkYWwgcm96ZGVsaXQgbmEgdmlhY2VybyBiaW5hcm55Y2ggc3RscGNvdiAodnlocmFsIGhvbWUvYXdheSAwLzEsIE9UIDAvMSwgYXRkLiku</div>
 
 
 

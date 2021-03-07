@@ -32,3 +32,10 @@ glimpse(game)
 distinct(game)
 ```
 https://towardsdatascience.com/data-cleaning-with-r-and-the-tidyverse-detecting-missing-values-ea23c519bc62 tu je dajaky source
+Je potrebne zistit vsetky unikatne hodnoty v stlpcoch, to nam moze pomoct pri konvertovani kvantitativnych atributov na kvalitativne
+```{r}
+unique(game$type)
+unique(game$home_rink_side_start)
+unique(game$outcome)
+```
+Vidime ze atribut home_rink_side_start by sa dal konvertovat na kvalitativny atribut, treba vsak vyriesit chybajuce hodnoty (median). Atribut home win/away win by sa dal rozdelit na viacero binarnych stlpcov (vyhral home/away 0/1, OT 0/1, atd.).
