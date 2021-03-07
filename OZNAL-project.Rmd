@@ -1,5 +1,5 @@
 ---
-title: "OZNAL - NHL"
+title: "R Notebook"
 output: html_notebook
 ---
 
@@ -10,79 +10,111 @@ library(tidyverse)
 library(data.table)
 ```
 
-
+#############################################
 
 ```{r}
 #setwd(dir) 
 path <- ('data/game.csv')
-game <- read.csv(path)
+game <- fread(path)
 head(game)
 ```
+
 ```{r}
 game <- subset(game, select=-c(venue_link,venue_time_zone_id, venue_time_zone_offset, venue_time_zone_tz))
 head(game)
 dim(game)
 ```
 
+```{r}
+dim(game[game$season==20192020,])
+dim(subset(game, season==20192020 & type=='P'))
+```
+
+```{r}
+#game <- game[!(outcome %like% "tbc")]
+```
 
 ```{r}
 dim(game[game$season==20192020,])
 dim(subset(game, season==20192020 & type=='P'))
 ```
+
+```{r}
+game[duplicated(game)]
+```
+```{r}
+game[game$game_id==2019020369]
+```
+```{r}
+game <- distinct(game)
+```
+
+
+#############################################
+
 ```{r}
 path <- ('data/game_teams_stats.csv')
-game_teams_stats <- read.csv(path)
+game_teams_stats <- fread(path)
 head(game_teams_stats)
 ```
+
 ```{r}
 game_teams_stats <- subset(game_teams_stats, select=-c(head_coach, startRinkSide, goals))
 head(game_teams_stats)
 dim(game_teams_stats)
 ```
+```{r}
+length(unique(game_teams_stats$game_id))
+```
+
+#############################################
 
 ```{r}
 path <- ('data/team_info.csv')
-team_info <- read.csv(path)
+team_info <- fread(path)
 head(team_info)
 ```
+
 ```{r}
-team_info <- subset(team_info, select=-c(franchiseId, link))
+team_info <- subset(team_info, select=-c(franchiseId, link, shortName, teamName))
 head(team_info)
 dim(team_info)
 ```
+
+#############################################
+
 ```{r}
-team_stats <- left_join(game_teams_stats, team_info, "team_id")
-head(team_stats)
-dim(team_stats)
+game_teams_stats <- left_join(game_teams_stats, team_info, "team_id")
+head(game_teams_stats)
+dim(game_teams_stats)
 ```
+
 ```{r}
-game[game$outcome=='tbc win tbc',]
+length(unique(game_teams_stats$team_id))
 ```
+
 ```{r}
-game_test <- game[!(game$outcome == 'tbc win OT' | game$outcome == 'tbc win tbc' | game$outcome == 'home win tbc' | game$outcome == 'away win tbc'),]
-dim(game_test)
-```
-```{r}
-dim(game_test[game_test$season==20192020,])
-dim(subset(game_test, season==20192020 & type=='P'))
-```
-```{r}
-df_h <- team_stats[(team_stats$HoA == 'home'),]
+df_h <- game_teams_stats[(game_teams_stats$HoA == 'home'),]
 head(df_h)
 dim(df_h)
+df_h <- distinct(df_h)
 unique(df_h$HoA)
 ```
+
 ```{r}
-df <- inner_join(df_a, df_h, "game_id")
+df_a <- game_teams_stats[(game_teams_stats$HoA == 'away'),]
+head(df_a)
+dim(df_a)
+df_a <- distinct(df_a)
+unique(df_a$HoA)
+```
+
+```{r}
+df <- left_join(df_a, df_h, "game_id", suffix = c(".away", ".home"))
 head(df)
 dim(df)
 ```
-```{r}
-df_a <- team_stats[(team_stats$HoA == 'away'),]
-head(df_a)
-dim(df_a)
-unique(df_a$HoA)
-```
+
 ```{r}
 df <- left_join(game, df, "game_id")
 head(df)
@@ -90,24 +122,35 @@ dim(df)
 ```
 
 ```{r}
-marek <- fread("data/game.csv")
-marek[outcome %like% "tbc"]
+dim(df[df$season==20192020,])
+dim(subset(df, season==20192020 & type=='P'))
+```
+```{r}
+dim(df[df$season==20182019,])
+dim(subset(df, season==20182019 & type=='P'))
+```
+```{r}
+dim(df[df$season==20172018,])
+dim(subset(df, season==20172018 & type=='P'))
+```
+```{r}
+dim(df[df$season==20162017,])
+dim(subset(df, season==20162017 & type=='P'))
+```
+
+```{r}
+glimpse(df)
 ```
 
 
 ```{r}
-dim(game)
-glimpse(game)
+df <- subset(df, select=-c(game_id, date_time_GMT, away_goals, home_goals, outcome, home_rink_side_start, venue, away_team_id, home_team_id, settled_in.away))
+df <- rename(df, 'settled_in' = 'settled_in.home')
+head(df)
+dim(df)
 ```
 
+
 ```{r}
-distinct(game)
+glimpse(df)
 ```
-https://towardsdatascience.com/data-cleaning-with-r-and-the-tidyverse-detecting-missing-values-ea23c519bc62 tu je dajaky source
-Je potrebne zistit vsetky unikatne hodnoty v stlpcoch, to nam moze pomoct pri konvertovani kvantitativnych atributov na kvalitativne
-```{r}
-unique(game$type)
-unique(game$home_rink_side_start)
-unique(game$outcome)
-```
-Vidime ze atribut home_rink_side_start by sa dal konvertovat na kvalitativny atribut, treba vsak vyriesit chybajuce hodnoty (median). Atribut home win/away win by sa dal rozdelit na viacero binarnych stlpcov (vyhral home/away 0/1, OT 0/1, atd.).
