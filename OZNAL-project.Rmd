@@ -144,13 +144,62 @@ glimpse(df)
 
 
 ```{r}
-df <- subset(df, select=-c(game_id, date_time_GMT, away_goals, home_goals, outcome, home_rink_side_start, venue, away_team_id, home_team_id, settled_in.away))
+df <- subset(df, select=-c(game_id, date_time_GMT, outcome, home_rink_side_start, venue, away_team_id, home_team_id, settled_in.away))
 df <- rename(df, 'settled_in' = 'settled_in.home')
+df <- rename(df, 'goals.away' = 'away_goals')
+df <- rename(df, 'goals.home' = 'home_goals')
 head(df)
 dim(df)
 ```
+## Prieskumná analýza datasetu
 
+charakteristika dát, ich rozdelenie a identifikácia problémov (+ riešenie).
 
 ```{r}
 glimpse(df)
+
 ```
+V datasete máme 31 atribútov. Vyšší počet je ich najmä z dôvodu potreby štatistík o hre z pohľadu oboch tímov ktoré odohrali zápas (preto máme počet atribútov cca zdvojnásobený). V tejto sekcii práce sa budeme venovať analýze jednotlivých atribútov, resp. dvojíc  atribútov.
+
+### Atribúty goals.home a goals.away
+**charakteristika:** atribút reprezentuje počet gólov z pohľadu domáceho a hosťovského tímu.
+```{r}
+boxplot(df$goals.home)
+hist(df$goals.home)
+boxplot(df$goals.away)
+hist(df$goals.away)
+```
+
+
+### Atribúty shots.home a shots.away
+**charakteristika:** atribút reprezentuje počet striel na bránu z pohľadu domáceho a hosťovského tímu.
+
+```{r}
+boxplot(df$shots.home)
+hist(df$shots.home)
+boxplot(df$shots.away)
+hist(df$shots.away)
+```
+## Atribúty won.home a won.away
+**charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE alebo FALSE TRUE. Môže však nastať aj situácia v ktorej majú oba hodnotu FALSE.
+
+Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa vŠak v datasete nachádza 642x - jedná sa o remízy - tie boli v NHL zrušené, skontrolovať si to môžeme vypísaním unikátnych sezón v týchto 642 prípadoch.
+
+```{r}
+unique(df$won.home)
+unique(df$won.away)
+subset(df, won.home==TRUE & won.away==TRUE)
+subset(df, won.home==FALSE & won.away==FALSE)
+verif <- subset(df, won.home==FALSE & won.away==FALSE)
+
+```
+Z výpisu môžeme vidieť, že remízy boli naposledy v sezóne 2017/2018.
+
+```{r}
+unique(verif$season)
+```
+
+```{r}
+
+```
+
