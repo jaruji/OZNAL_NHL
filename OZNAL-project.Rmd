@@ -1,6 +1,6 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output: rmarkdown::github_document #html_notebook
 ---
 
 ```{r}
@@ -161,8 +161,40 @@ glimpse(df)
 ```
 V datasete máme 31 atribútov. Vyšší počet je ich najmä z dôvodu potreby štatistík o hre z pohľadu oboch tímov ktoré odohrali zápas (preto máme počet atribútov cca zdvojnásobený). V tejto sekcii práce sa budeme venovať analýze jednotlivých atribútov, resp. dvojíc  atribútov.
 
+### Atribút season
+**charakteristika:** atribút reprezentuje sezónu, v ktorej sa odohral NHL zápas. Dataset obsahuje sezóny od roku 2000-2020 - kedže cieľom práce je práca na predikčnom modeli, bude vhodné nepracovať s celým datasetom ale iba poslednými sezónami. Dôvôdom je častá obmena kádrov tímov NHL, čo môže mať za následok drasticky odlíšne výkony tímov medzi sezónami. Práca s veľkým množstvom sezón bude mať pravdepodobne za následok nízku presnosť modelu.
+```{r}
+unique(df$season)
+```
+
+
+```{r}
+tail(sort(table(df$season)))
+```
+Môžeme vidieť že najviac zápasov máme v sezónach 2017/2018 a 2018/2019. Zaujímavosťou je, že medzi sezóny s najväčším počtom odohraných zápasov nepatrí posledná odohraná sezóna, t.j. 2019/2020.
+
+### Atribút type
+**charakteristika:** atribút reprezentuje typ odohraného zápasu. Nadobúda tri základné hodnoty:
+
+* R - regular, označuje regulárne zápasy ktoré sa hrajú počas NHL sezóny
+* P - playoff, označuje zápasy vyraďovacej časti NHL, hrajú sa na konci sezóny. Tejto časti sa zúčastňujú iba najlepšie tímy.
+* A - ?
+```{r}
+unique(df$type)
+table(df$type)
+```
+Z početností jednotlivých atribútov môžeme vidieť obrovskú prevahu zápasov regulárnej časti sezóny, čo aj zodpovedá skutočnosti...
+
+Hodnotu 'A' nadobúda len 5 záznamov, v žiadnom z nich sa nejedná o zápasy tímov NHL. Hodnotu NA nemá žiaden atribút.
+```{r}
+subset(df, type=='A')
+```
+
+
+
 ### Atribúty goals.home a goals.away
 **charakteristika:** atribút reprezentuje počet gólov z pohľadu domáceho a hosťovského tímu.
+
 ```{r}
 boxplot(df$goals.home)
 hist(df$goals.home)
@@ -180,6 +212,13 @@ hist(df$shots.home)
 boxplot(df$shots.away)
 hist(df$shots.away)
 ```
+Z histogramov možno vidieť, že atribúty shots majú normálnu distribúciu.
+```{r}
+table(is.na(df$shots.home))
+table(is.na(df$shots.away))
+```
+Keď sa bližsie pozrieme na výsledok funkcie is.na(), môžeme vidieť, že oba atribúty shots (home aj away) obsahujú prázdne hodnoty v 4 záznamoch. Tie je potrebné v rámci čistenia dát odstrániť, resp. nahradiť. Vhodnou metódou môže byť napr. nahradenie priemernou hodnotou striel na bránu z ostatných zápasov tímu v sezóne.
+
 ## Atribúty won.home a won.away
 **charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE alebo FALSE TRUE. Môže však nastať aj situácia v ktorej majú oba hodnotu FALSE.
 
@@ -199,6 +238,39 @@ Z výpisu môžeme vidieť, že remízy boli naposledy v sezóne 2017/2018.
 unique(verif$season)
 ```
 
+
+```{r}
+table(is.na(df$won.home))
+table(is.na(df$won.away))
+```
+Atribúty won.home a won.away neobsahujú žiadne prázdne hodnoty, preto nie je potrebné volenie stratégie ich nahrádzania.
+
+## Atribúty pim.home a pim.away
+**charakteristika:** atribút reprezentuje hodnotu trestných minút, ktoré boli udelené hráčom tímu počas zápasu.
+
+```{r}
+boxplot(df$pim.home)
+hist(df$pim.home)
+boxplot(df$pim.away)
+hist(df$pim.away)
+```
+Z boxplotov môžeme vidieť, že počty trestných minút v niektorých zápasoch dostávajú veľmi vysoké hodnoty. Tie by pravdepodobne bolo vhodné znormovať s využitím kvantilov. Distribúcia hodnôt je naklonená vpravo, t.j *skewed right*.
+
+```{r}
+table(is.na(df$pim.home))
+table(is.na(df$pim.away))
+```
+Atribúty nadobúdajú prázdne hodnoty v 4 prípadoch, je potrebné ich nahradiť prostredníctvom vybranej stratégie. Kedže sa jedna už o druhú situáciu kedy sme narazili na 4 chýbajúce hodnoty, tieto problémové záznamy si vypíšeme.
+```{r}
+subset(df, is.na(pim.home)==TRUE)
+```
+Môžeme vidieť že sa jedná o zápasy ktoré pre nás nemajú žiadnu pridanú hodnotu, keďže všetky relevantné atribúty dosahujú hodnotu NA. Je preto vhodné tieto štyri atribúty z tabuľky odstrániť a opätovne skontrolovať predošlé chýbajúce hodnoty.
+```{r}
+df <- subset(df, is.na(pim.home)==FALSE)
+table(is.na(df$pim.home))
+table(is.na(df$pim.away))
+```
+Po úprave datasetu už sú všetky hodnoty atribútov pim.home a pim.away neprázdne.
 ```{r}
 
 ```
