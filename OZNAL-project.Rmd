@@ -101,7 +101,9 @@ head(team_info)
 dim(team_info)
 ```
 
-#############################################
+### Spájanie tabuliek
+
+
 
 ```{r}
 game_teams_stats <- left_join(game_teams_stats, team_info, "team_id")
@@ -291,6 +293,7 @@ table(is.na(df$pim.home))
 table(is.na(df$pim.away))
 ```
 Po úprave datasetu už sú všetky hodnoty atribútov pim.home a pim.away neprázdne.
+
 ```{r}
 
 ```
