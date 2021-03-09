@@ -9,6 +9,8 @@ output: html_notebook
 library(dplyr)
 library(tidyverse)
 library(data.table)
+library(corrplot)
+library(RColorBrewer)
 ```
 
 ## Dáta
@@ -187,13 +189,13 @@ V datasete máme 31 atribútov. Vyšší počet je ich najmä z dôvodu potreby 
 **charakteristika:** atribút reprezentuje sezónu, v ktorej sa odohral NHL zápas. Dataset obsahuje sezóny od roku 2000-2020 - kedže cieľom práce je práca na predikčnom modeli, bude vhodné nepracovať s celým datasetom ale iba poslednými sezónami. Dôvôdom je častá obmena kádrov tímov NHL, čo môže mať za následok drasticky odlíšne výkony tímov medzi sezónami. Práca s veľkým množstvom sezón bude mať pravdepodobne za následok nízku presnosť modelu.
 ```{r}
 unique(df$season)
+barplot(prop.table(table(df$season)), las=2, cex.names=.8, col=rgb(0.2,0.4,0.6,0.6))
 ```
-
 
 ```{r}
 tail(sort(table(df$season)))
 ```
-Môžeme vidieť že najviac zápasov máme v sezónach 2017/2018 a 2018/2019. Zaujímavosťou je, že medzi sezóny s najväčším počtom odohraných zápasov nepatrí posledná odohraná sezóna, t.j. 2019/2020.
+Z výpisu aj grafu môžeme vidieť, že najviac zápasov máme v sezónach 2017/2018 a 2018/2019. Zaujímavosťou je, že medzi sezóny s najväčším počtom odohraných zápasov nepatrí posledná odohraná sezóna, t.j. 2019/2020.
 
 ### Atribút type
 **charakteristika:** atribút reprezentuje typ odohraného zápasu. Nadobúda tri základné hodnoty:
@@ -314,4 +316,115 @@ hist(df$faceOffWinPercentage.home)
 boxplot(df$faceOffWinPercentage.away)
 hist(df$faceOffWinPercentage.away)
 ```
+Nakoľko hodnoty NA atribútu faceOffWinPercentage sú aj v sezónach, s ktorými chceme pracovať (2016-2018), potrebujeme si tieto záznamy vypísať a na základe výpisu môžeme navrhnúť spôsob, akým tieto hodnoty nahradíme/odstránime.
+```{r}
+subset(df, (season==20172018 | season==20162017) & (is.na(faceOffWinPercentage.away)==TRUE | is.na(faceOffWinPercentage.home)==TRUE))
+```
+
+Tiež je potrebné si všimnúť, že atribút settled_in obsahuje hodnotu tbc. Tento atribút potrebujeme analyzovať a zistiť, aké hodnoty nadobúda, aby sme mohli upraviť záznamy s touto hodnotou.
+
+### Atribút settled_in
+**charakteristika:** atribút reprezentuje, akým spôsobom bol zápas ukončený (napríklad v riadnom hracom čase / v predĺžení).
+
+```{r}
+unique(df$settled_in)
+```
+Popis hodnôt:
+* REG - zápas ukončený v riadnom hracom čase
+* OT - zápas ukončený v predĺžení
+* tbc - zápas ukončený neregulárnym spôsobom (zrušený/odložený)
+
+Zápasy s hodnotou tbc v atribúte settled_in nie sú vhodné pre štatistickú analýzu, ktorú budeme vykonávať. Vypíšeme si počet zápasov, ktoré neboli ukončené regulárne.
+
+```{r}
+table(df$settled_in)
+barplot(prop.table(table(df$settled_in)))
+```
+Vidíme, že počet takých zápasov je 19. Napriek tomu, že je to zanedbateľné číslo, je potrebné tieto záznamy v ďalšej fáze projektu odstrániť. 
+Tiež si môžeme všimnúť, že približne 70+% zápasov je ukončených v regulárnom hracom čase, zatiaľ čo počet zápasov ukončených v predĺžení je približne 20+%.
+
+### Odstránenie NA hodnôt
+
+Ako bolo spomenúté vyššie, zápasy s hodnotou tbc v atribúte settled_in obsahujú nežiadúce (NA) hodnoty. Tieto záznamy odstránime.
+
+```{r}
+dim(df)
+df <- subset(df, df$settled_in!='tbc')
+dim(df)
+```
+
+```{r}
+sapply(df, function(x) sum(is.na(x)))
+```
+
+### Párová analýza dát
+
+V tejto časti chceme identifikovať možné vzťahy medzi jednotlivými atribútmi prostredníctvom výpočtu korelácií, respektíve korelačnej matice.
+Nakoľko niektoré atribúty obsahujú nenumerické hodnoty, pre prvotnú identifikáciu možných vzťahov medzi atribútmi použijeme iba atribúty s numerickými hodnotami.
+
+```{r}
+df_numeric <- subset(df, select=-c(type, HoA.away, won.away, abbreviation.away, HoA.home, won.home, settled_in, abbreviation.home))
+sapply(df, is.numeric)
+# cor(df_numeric, use="complete.obs")
+```
+
+```{r}
+corrplot(cor(df_numeric, use="complete.obs"), type="lower", method="color", tl.col="black")
+```
+
+Môžeme vidieť že najväčšie korelácie sú medzi dvojicami atribútov:
+
+* powerPlayGoals.away - goals.away
+```{r}
+cor(df$powerPlayGoals.away, df$goals.away)
+```
+* powerPlayGoals.home - goals.home
+```{r}
+cor(df$powerPlayGoals.home, df$goals.home)
+```
+* hits.home - hits.away
+```{r}
+cor(df$hits.home, df$hits.away, use="complete.obs")
+```
+* pim.home - pim.away
+```{r}
+cor(df$pim.home, df$pim.away)
+```
+* powerPlayOpportunities.home - pim.away
+```{r}
+cor(df$powerPlayOpportunities.home, df$pim.away)
+```
+* pim.home - powerPlayOpportunities.away
+```{r}
+cor(df$pim.home, df$powerPlayOpportunities.away)
+```
+* faceOffWinPercentage.home - faceOffWinPercentage.away
+```{r}
+cor(df$faceOffWinPercentage.home, df$faceOffWinPercentage.away, use="complete.obs")
+```
+* giveaways.home - giveaways.away
+```{r}
+cor(df$giveaways.home, df$giveaways.away, use="complete.obs")
+```
+* takeaways.home - takeaways.away
+```{r}
+cor(df$takeaways.home, df$takeaways.away, use="complete.obs")
+```
+
+### Hypotézy
+
+1. Čím viac trestných minút (pim) má daný tím, tým je väčšia pravdepodobnosť, že zápas prehrá.
+2. Čím je väčší počet striel na bránu (shots), tým viac gólov padne v zápase (goals).
+3. Čím viac striel tím zblokuje (blocked), tým menej gólov nastriela oponent (goals).
+4. Čím viac kontaktných súbojov (hits) je v zápase, tým viac je v zápase trestných minút (pim).
+
+
+
+
+
+
+
+
+
+
 
