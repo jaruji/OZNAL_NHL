@@ -1,6 +1,7 @@
 ---
 title: "R Notebook"
-output: rmarkdown::github_document #html_notebook
+#output: rmarkdown::github_document
+output: html_notebook 
 ---
 
 ```{r}
@@ -10,7 +11,10 @@ library(tidyverse)
 library(data.table)
 ```
 
-#############################################
+## Dáta
+
+### Tabuľka game
+Tabuľka obsahuje základné dáta jednotlivých zápasov. Neobsahuje však detailné informácie o tímoch alebo tímových štatistikách konkrétneho zápasu. Dokážeme však pomocou atribútov game_id, away_team_id a home_team_id namapovať iné tabuľky tak, aby sme dostali jeden dataset so všetkými hodnotami.
 
 ```{r}
 #setwd(dir) 
@@ -19,11 +23,15 @@ game <- fread(path)
 head(game)
 ```
 
+Niektoré atribúty sú z pohľadu štatistiky nezaujímavé a teda ich môžeme odstrániť pred spájaním tabuliek. Napríklad údaje o časovej zóne, alebo identifikátory štadiónov a pod.
+
 ```{r}
 game <- subset(game, select=-c(venue_link,venue_time_zone_id, venue_time_zone_offset, venue_time_zone_tz))
 head(game)
 dim(game)
 ```
+
+Prvotnou analýzou sme zistili, že v minulej sezóne sa odohralo približne 2500 zápasov, z čoho bolo +-10 percent v playoff. S týmto počtom zápasov nám stačí pracovať s poslednou sezónou pri trénovaní stroja.
 
 ```{r}
 dim(game[game$season==20192020,])
@@ -34,23 +42,28 @@ dim(subset(game, season==20192020 & type=='P'))
 #game <- game[!(outcome %like% "tbc")]
 ```
 
-```{r}
-dim(game[game$season==20192020,])
-dim(subset(game, season==20192020 & type=='P'))
-```
+Počet hier v minulej sezóne bol omnoho vyšší ako je zvykom, tak sme skontrolovali existenciu duplikátnych záznamov v tabuľke. Z výpisu nižšie sme odhalili 2570 duplikátov v celej tabuľke.
 
 ```{r}
 game[duplicated(game)]
 ```
+Aby sme si overili existenciu duplikátov, tak sme si vypísali náhodnú hru z vyššie vygenerovanej tabuľky duplikátov.
+
 ```{r}
 game[game$game_id==2019020369]
 ```
+
+Duplikáty sme eliminovali využitím funkcie distinct, ktorá zachová jedinečné záznamy. Elimináciu duplikátov sme overili opäť použitím funkcie duplicated, ktorá vrátila 0 záznamov. Počet záznamov v tabuľke klesol o 2570, aktuálny počet záznamov je teda 23735.
+
 ```{r}
 game <- distinct(game)
+game[duplicated(game)]
+dim(game)
 ```
 
+### Tabuľka game_teams_stats
 
-#############################################
+Druhá tabuľka obsahuje špecifické štatistiky tímov k jednotlivým zápasom. Problémom je, že jeden záznam obsahuje štatistiky iba jedného tímu. Teda máme pre jeden záznam zápasu z tabuľky games dva záznamy v tabuľke game_teams_stats. 
 
 ```{r}
 path <- ('data/game_teams_stats.csv')
@@ -58,22 +71,29 @@ game_teams_stats <- fread(path)
 head(game_teams_stats)
 ```
 
+Vyhodili sme atribúty, ktoré nám nepomôžu pri štatistickom vyhodnocovaní a vypísali sme si informácie o datasete. Všimli sme si, že údajov je viac ako dva-krát viac oproti záznamom v tabuľke game. To znamená, že niektoré záznamy sú duplicitné, alebo chybné.
+
 ```{r}
 game_teams_stats <- subset(game_teams_stats, select=-c(head_coach, startRinkSide, goals))
 head(game_teams_stats)
 dim(game_teams_stats)
 ```
+Podľa unikátnych identifikátorov zápasov vidíme, že ich je rovnako ako v tabuľke game. To znamená, že v tabuľke game_teams_stats máme duplikáty, ktoré budeme musieť odstrániť.
+
 ```{r}
 length(unique(game_teams_stats$game_id))
 ```
+### Tabuľka team_info
 
-#############################################
+Táto tabuľka obsahuje iba základné infromácie o tímoch, ktoré nesúvisia so sezónami a zápasmi. Je však potrebná pre doplnenie mien tímov k jednotlivým hrám.
 
 ```{r}
 path <- ('data/team_info.csv')
 team_info <- fread(path)
 head(team_info)
 ```
+
+Z tejto tabuľky nám stačí extrahovať atribúty team_id, podľa ktorého spojíme tabuľky a abbreviation, ktorý nám doplní skratky názvov tímov ku zápasom.
 
 ```{r}
 team_info <- subset(team_info, select=-c(franchiseId, link, shortName, teamName))
@@ -219,7 +239,7 @@ table(is.na(df$shots.away))
 ```
 Keď sa bližsie pozrieme na výsledok funkcie is.na(), môžeme vidieť, že oba atribúty shots (home aj away) obsahujú prázdne hodnoty v 4 záznamoch. Tie je potrebné v rámci čistenia dát odstrániť, resp. nahradiť. Vhodnou metódou môže byť napr. nahradenie priemernou hodnotou striel na bránu z ostatných zápasov tímu v sezóne.
 
-## Atribúty won.home a won.away
+### Atribúty won.home a won.away
 **charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE alebo FALSE TRUE. Môže však nastať aj situácia v ktorej majú oba hodnotu FALSE.
 
 Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa vŠak v datasete nachádza 642x - jedná sa o remízy - tie boli v NHL zrušené, skontrolovať si to môžeme vypísaním unikátnych sezón v týchto 642 prípadoch.
@@ -245,7 +265,7 @@ table(is.na(df$won.away))
 ```
 Atribúty won.home a won.away neobsahujú žiadne prázdne hodnoty, preto nie je potrebné volenie stratégie ich nahrádzania.
 
-## Atribúty pim.home a pim.away
+### Atribúty pim.home a pim.away
 **charakteristika:** atribút reprezentuje hodnotu trestných minút, ktoré boli udelené hráčom tímu počas zápasu.
 
 ```{r}

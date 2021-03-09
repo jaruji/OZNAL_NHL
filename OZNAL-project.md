@@ -6,6 +6,8 @@ R Notebook
 library(dplyr)
 ```
 
+    ## Warning: package 'dplyr' was built under R version 4.0.4
+
     ## 
     ## Attaching package: 'dplyr'
 
@@ -21,12 +23,28 @@ library(dplyr)
 library(tidyverse)
 ```
 
+    ## Warning: package 'tidyverse' was built under R version 4.0.4
+
     ## -- Attaching packages --------------------------------------- tidyverse 1.3.0 --
 
     ## <U+221A> ggplot2 3.3.3     <U+221A> purrr   0.3.4
     ## <U+221A> tibble  3.1.0     <U+221A> stringr 1.4.0
     ## <U+221A> tidyr   1.1.2     <U+221A> forcats 0.5.1
     ## <U+221A> readr   1.4.0
+
+    ## Warning: package 'ggplot2' was built under R version 4.0.4
+
+    ## Warning: package 'tibble' was built under R version 4.0.4
+
+    ## Warning: package 'tidyr' was built under R version 4.0.4
+
+    ## Warning: package 'readr' was built under R version 4.0.4
+
+    ## Warning: package 'purrr' was built under R version 4.0.4
+
+    ## Warning: package 'stringr' was built under R version 4.0.3
+
+    ## Warning: package 'forcats' was built under R version 4.0.4
 
     ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
     ## x dplyr::filter() masks stats::filter()
@@ -35,6 +53,8 @@ library(tidyverse)
 ``` r
 library(data.table)
 ```
+
+    ## Warning: package 'data.table' was built under R version 4.0.4
 
     ## 
     ## Attaching package: 'data.table'
@@ -47,7 +67,13 @@ library(data.table)
     ## 
     ##     between, first, last
 
-############################################# 
+\#\#Dáta
+
+\#\#\#Tabuľka game Tabuľka obsahuje základné dáta jednotlivých zápasov.
+Neobsahuje však detailné informácie o tímoch alebo tímových štatistikách
+konkrétneho zápasu. Dokážeme však pomocou atribútov game\_id,
+away\_team\_id a home\_team\_id namapovať iné tabuľky tak, aby sme
+dostali jeden dataset so všetkými hodnotami.
 
 ``` r
 #setwd(dir) 
@@ -85,6 +111,10 @@ head(game)
     ## 5:                PDT
     ## 6:                EDT
 
+Niektoré atribúty sú z pohľadu štatistiky nezaujímavé a teda ich môžeme
+odstrániť pred spájaním tabuliek. Napríklad údaje o časovej zóne, alebo
+identifikátory štadiónov a pod.
+
 ``` r
 game <- subset(game, select=-c(venue_link,venue_time_zone_id, venue_time_zone_offset, venue_time_zone_tz))
 head(game)
@@ -111,6 +141,10 @@ dim(game)
 
     ## [1] 26305    11
 
+Prvotnou analýzou sme zistili, že v minulej sezóne sa odohralo približne
+2500 zápasov, z čoho bolo +-10 percent v playoff. S týmto počtom zápasov
+nám stačí pracovať s poslednou sezónov pri trénovaní stroja.
+
 ``` r
 dim(game[game$season==20192020,])
 ```
@@ -127,17 +161,9 @@ dim(subset(game, season==20192020 & type=='P'))
 #game <- game[!(outcome %like% "tbc")]
 ```
 
-``` r
-dim(game[game$season==20192020,])
-```
-
-    ## [1] 2425   11
-
-``` r
-dim(subset(game, season==20192020 & type=='P'))
-```
-
-    ## [1] 231  11
+Počet hier v minulej sezóne bol omnoho vyšší ako je zvykom, tak sme
+skontrolovali existenciu duplikátnych záznamov v tabuľke. Z výpisu
+nižšie sme odhalili 2570 duplikátov v celej tabuľke.
 
 ``` r
 game[duplicated(game)]
@@ -168,6 +194,9 @@ game[duplicated(game)]
     ## 2569:          5          1 away win REG                 left Enterprise Center
     ## 2570:          4          1 away win REG                 left         TD Garden
 
+Aby sme si overili existenciu duplikátov, tak sme si vypísali náhodnú
+hru z vyššie vygenerovanej tabuľky duplikátov.
+
 ``` r
 game[game$game_id==2019020369]
 ```
@@ -179,11 +208,25 @@ game[game$game_id==2019020369]
     ## 1:          1 home win REG                 left Nationwide Arena
     ## 2:          1 home win REG                 left Nationwide Arena
 
+Duplikáty sme eliminovali využitím funkcie distinct, ktorá zachová
+jedinečné záznamy. Elimináciu duplikátov sme overili opäť použitím
+funkcie duplicated, ktorá vrátila 0 záznamov. Počet záznamov v tabuľke
+klesol o 2570, aktuálny počet záznamov je teda 23735.
+
 ``` r
 game <- distinct(game)
+game[duplicated(game)]
 ```
 
-############################################# 
+    ## Empty data.table (0 rows and 11 cols): game_id,season,type,date_time_GMT,away_team_id,home_team_id...
+
+``` r
+dim(game)
+```
+
+    ## [1] 23735    11
+
+\#\#\#Tabuľka game\_teams\_stats
 
 ``` r
 path <- ('data/game_teams_stats.csv')
@@ -252,7 +295,7 @@ length(unique(game_teams_stats$game_id))
 
     ## [1] 23735
 
-############################################# 
+# 
 
 ``` r
 path <- ('data/team_info.csv')
@@ -287,7 +330,7 @@ dim(team_info)
 
     ## [1] 33  2
 
-############################################# 
+# 
 
 ``` r
 game_teams_stats <- left_join(game_teams_stats, team_info, "team_id")
@@ -778,11 +821,13 @@ nepatrí posledná odohraná sezóna, t.j. 2019/2020.
 **charakteristika:** atribút reprezentuje typ odohraného zápasu.
 Nadobúda tri základné hodnoty:
 
--   R - regular, označuje regulárne zápasy ktoré sa hrajú počas NHL
+  - R - regular, označuje regulárne zápasy ktoré sa hrajú počas NHL
     sezóny
--   P - playoff, označuje zápasy vyraďovacej časti NHL, hrajú sa na
+  - P - playoff, označuje zápasy vyraďovacej časti NHL, hrajú sa na
     konci sezóny. Tejto časti sa zúčastňujú iba najlepšie tímy.
--   A - ?
+  - A - ?
+
+<!-- end list -->
 
 ``` r
 unique(df$type)
@@ -860,25 +905,25 @@ a hosťovského tímu.
 boxplot(df$goals.home)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 ``` r
 hist(df$goals.home)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-2.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-31-2.png)<!-- -->
 
 ``` r
 boxplot(df$goals.away)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-3.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-31-3.png)<!-- -->
 
 ``` r
 hist(df$goals.away)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-4.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-31-4.png)<!-- -->
 
 ### Atribúty shots.home a shots.away
 
@@ -889,25 +934,25 @@ pohľadu domáceho a hosťovského tímu.
 boxplot(df$shots.home)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
 ``` r
 hist(df$shots.home)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-33-2.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-2.png)<!-- -->
 
 ``` r
 boxplot(df$shots.away)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-33-3.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-3.png)<!-- -->
 
 ``` r
 hist(df$shots.away)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-33-4.png)<!-- --> Z
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-32-4.png)<!-- --> Z
 histogramov možno vidieť, že atribúty shots majú normálnu distribúciu.
 
 ``` r
@@ -932,7 +977,7 @@ záznamoch. Tie je potrebné v rámci čistenia dát odstrániť, resp.
 nahradiť. Vhodnou metódou môže byť napr. nahradenie priemernou hodnotou
 striel na bránu z ostatných zápasov tímu v sezóne.
 
-## Atribúty won.home a won.away
+### Atribúty won.home a won.away
 
 **charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v
 zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE
@@ -1084,7 +1129,7 @@ table(is.na(df$won.away))
 Atribúty won.home a won.away neobsahujú žiadne prázdne hodnoty, preto
 nie je potrebné volenie stratégie ich nahrádzania.
 
-## Atribúty pim.home a pim.away
+### Atribúty pim.home a pim.away
 
 **charakteristika:** atribút reprezentuje hodnotu trestných minút, ktoré
 boli udelené hráčom tímu počas zápasu.
@@ -1093,25 +1138,25 @@ boli udelené hráčom tímu počas zápasu.
 boxplot(df$pim.home)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
 
 ``` r
 hist(df$pim.home)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-38-2.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-37-2.png)<!-- -->
 
 ``` r
 boxplot(df$pim.away)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-38-3.png)<!-- -->
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-37-3.png)<!-- -->
 
 ``` r
 hist(df$pim.away)
 ```
 
-![](OZNAL-project_files/figure-gfm/unnamed-chunk-38-4.png)<!-- --> Z
+![](OZNAL-project_files/figure-gfm/unnamed-chunk-37-4.png)<!-- --> Z
 boxplotov môžeme vidieť, že počty trestných minút v niektorých zápasoch
 dostávajú veľmi vysoké hodnoty. Tie by pravdepodobne bolo vhodné
 znormovať s využitím kvantilov. Distribúcia hodnôt je naklonená vpravo,
