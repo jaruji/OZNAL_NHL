@@ -288,13 +288,30 @@ subset(df, is.na(pim.home)==TRUE)
 ```
 Môžeme vidieť že sa jedná o zápasy ktoré pre nás nemajú žiadnu pridanú hodnotu, keďže všetky relevantné atribúty dosahujú hodnotu NA. Je preto vhodné tieto štyri atribúty z tabuľky odstrániť a opätovne skontrolovať predošlé chýbajúce hodnoty.
 ```{r}
-df <- subset(df, is.na(pim.home)==FALSE)
-table(is.na(df$pim.home))
-table(is.na(df$pim.away))
+#df <- subset(df, is.na(pim.home)==FALSE)
+#table(is.na(df$pim.home))
+#table(is.na(df$pim.away))
+#Po úprave datasetu už sú všetky hodnoty atribútov pim.home a pim.away neprázdne.
 ```
-Po úprave datasetu už sú všetky hodnoty atribútov pim.home a pim.away neprázdne.
+
+### Atribúty faceOffWinPercentage.home a faceOffWinPercentage.away
+**charakteristika:** atribút reprezentuje úspešnosť vyhraných vhadzovaní v percentách.
 
 ```{r}
+table(is.na(df$faceOffWinPercentage.home))
+unique(subset(df, is.na(faceOffWinPercentage.home)==TRUE)$season)
+table(is.na(df$faceOffWinPercentage.away))
+unique(subset(df, is.na(faceOffWinPercentage.away)==TRUE)$season)
+```
+```{r}
+(100/23735)*11074
+```
+Vidíme, že atribút obsahuje takmer 50% chýbajúcich hodnôt. Keďže chýbajúce hodnoty atribútu sú aj v novších sezónach, s ktorými chceme pracovať, bude potrebné bližšie preskúmať záznamy obsahujúce tento chýbajúci atribút.
 
+```{r}
+boxplot(df$faceOffWinPercentage.home)
+hist(df$faceOffWinPercentage.home)
+boxplot(df$faceOffWinPercentage.away)
+hist(df$faceOffWinPercentage.away)
 ```
 
