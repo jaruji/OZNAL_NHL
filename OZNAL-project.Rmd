@@ -363,8 +363,19 @@ V tejto časti chceme identifikovať možné vzťahy medzi jednotlivými atribú
 Nakoľko niektoré atribúty obsahujú nenumerické hodnoty, pre prvotnú identifikáciu možných vzťahov medzi atribútmi použijeme iba atribúty s numerickými hodnotami.
 
 ```{r}
-df_numeric <- subset(df, select=-c(type, HoA.away, won.away, abbreviation.away, HoA.home, won.home, settled_in, abbreviation.home))
-sapply(df, is.numeric)
+df$won.home[df$won.home == "TRUE"] <- "1"
+df$won.home[df$won.home == "FALSE"] <- "0"
+df$won.away[df$won.away == "TRUE"] <- "1"
+df$won.away[df$won.away == "FALSE"] <- "0"
+class(df$won.home) = "numeric"
+class(df$won.away) = "numeric"
+unique(df$won.home)
+unique(df$won.away)
+```
+
+```{r}
+df_numeric <- subset(df, select=-c(type, HoA.away, abbreviation.away, HoA.home, settled_in, abbreviation.home))
+sapply(df, is.numeric) # won.away, won.home, 
 # cor(df_numeric, use="complete.obs")
 ```
 
@@ -417,9 +428,6 @@ cor(df$takeaways.home, df$takeaways.away, use="complete.obs")
 2. Čím je väčší počet striel na bránu (shots), tým viac gólov padne v zápase (goals).
 3. Čím viac striel tím zblokuje (blocked), tým menej gólov nastriela oponent (goals).
 4. Čím viac kontaktných súbojov (hits) je v zápase, tým viac je v zápase trestných minút (pim).
-
-
-
 
 
 
