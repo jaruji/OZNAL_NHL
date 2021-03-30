@@ -11,6 +11,7 @@ library(tidyverse)
 library(data.table)
 library(corrplot)
 library(RColorBrewer)
+library(rcompanion)
 ```
 
 ## Dáta
@@ -428,6 +429,43 @@ cor(df$takeaways.home, df$takeaways.away, use="complete.obs")
 2. Čím je väčší počet striel na bránu (shots), tým viac gólov padne v zápase (goals).
 3. Čím viac striel tím zblokuje (blocked), tým menej gólov nastriela oponent (goals).
 4. Čím viac kontaktných súbojov (hits) je v zápase, tým viac je v zápase trestných minút (pim).
+
+## Analýzka, veci
+
+```{r}
+hist(df$pim.home)
+```
+
+```{r}
+qqnorm(df$pim.home)
+qqline(df$pim.home, col = "steelblue", lwd = 2)
+```
+
+```{r}
+plot(df$pim.home, c(rep(1,length(df$pim.home))), pch = 19, frame = FALSE)
+#plot(1:length(df$pim.home), df$pim.home)
+plot(df$pim.home)
+```
+
+```{r}
+
+plot(density(df$pim.home))
+
+pimx<-seq(min(df$pim.home), max(df$pim.home), length=length(df$pim.home))
+pimy<-dnorm(pimx, mean=mean(df$pim.home), sd=3)
+plot(pimx, pimy)
+```
+
+```{r}
+plotNormalDensity(df$pim.home)
+```
+
+```{r}
+boxplot(df$pim.home, horizontal = TRUE)
+```
+
+
+
 
 
 
