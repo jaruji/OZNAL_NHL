@@ -464,7 +464,10 @@ plotNormalDensity(df$pim.home)
 boxplot(df$pim.home, horizontal = TRUE)
 ```
 
-
+# Trestné minúty, prehra/výhra
+# počet striel na bránu, počet gólov
+# zblokované strely, počet gólov oponenta
+# počet súbojov, počet trestných minút
 
 
 
