@@ -12,6 +12,7 @@ library(data.table)
 library(corrplot)
 library(RColorBrewer)
 library(rcompanion)
+library(lawstat)
 ```
 
 ## Dáta
@@ -464,10 +465,187 @@ plotNormalDensity(df$pim.home)
 boxplot(df$pim.home, horizontal = TRUE)
 ```
 
-# Trestné minúty, prehra/výhra
+# Goly, prehra/výhra
+
+```{r}
+cor(df$goals.home, df$won.home, use="complete.obs")
+cor(df$goals.away, df$won.away, use="complete.obs")
+boxplot(df$goals.home)
+boxplot(df$goals.away)
+```
+```{r}
+df_sample_without_na = sample_n(df, 1000)
+summary(df$goals.home)
+summary(df_sample_without_na$goals.home)
+summary(df$goals.away)
+summary(df_sample_without_na$goals.away)
+summary(df$won.home)
+summary(df_sample_without_na$won.home)
+summary(df$won.away)
+summary(df_sample_without_na$won.away)
+hist(df$goals.home)
+hist(df_sample_without_na$goals.home, xlab="goals.home", col="darkblue")
+hist(df$goals.away, breaks = 10)
+hist(df_sample_without_na$goals.away, breaks = 10, xlab="goals.away", col="darkred")
+hist(df$won.home, breaks = 2)
+hist(df_sample_without_na$won.home, breaks = 2)
+hist(df$won.away, breaks = 2)
+hist(df_sample_without_na$won.away, breaks = 2)
+```
+```{r}
+plot(density(df_sample_without_na$goals.home))
+shapiro.test(df_sample_without_na$goals.home)
+plot(density(df_sample_without_na$goals.away))
+shapiro.test(df_sample_without_na$goals.away)
+```
+
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 1], main="" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+par(mar=c(5,5,0,3))
+hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(200,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
+```
+
+
 # počet striel na bránu, počet gólov
+
+```{r}
+df$total_shots = df$shots.away + df$shots.home
+df$total_goals = df$goals.away + df$goals.home
+hist(df$total_shots)
+hist(df$total_goals)
+cor(df$total_shots, df$total_goals, use="complete.obs")
+boxplot(df$total_shots)
+boxplot(df$total_goals)
+```
+```{r}
+count(df[df$total_shots > 140])
+count(df[df$total_shots < 20])
+df$total_shots[df$total_shots > 140] = quantile(df$total_shots, .75)
+df$total_shots[df$total_shots < 20] = quantile(df$total_shots, .25)
+boxplot(df$total_shots)
+```
+```{r}
+df_sample_without_na = sample_n(df, 1000)
+summary(df$total_shots)
+summary(df_sample_without_na$total_shots)
+summary(df$total_goals)
+summary(df_sample_without_na$total_goals)
+hist(df$total_shots)
+hist(df_sample_without_na$total_shots, col="darkorange", xlab="Total shots", main="")
+hist(df$total_goals)
+hist(df_sample_without_na$total_goals, col="darkgreen", xlab="Total goals", main="")
+```
+```{r}
+plot(density(df_sample_without_na$total_shots))
+shapiro.test(df_sample_without_na$total_shots)
+```
+```{r}
+plot(density(df_sample_without_na$total_goals))
+shapiro.test(df_sample_without_na$total_goals)
+```
+```{r}
+pairs(~ df_sample_without_na$total_shots + df_sample_without_na$total_goals, panel=function(x,y){
+  points(x,y)
+  abline(lm(y~x), col='red')
+})
+```
+```{r}
+levene.test(df_sample_without_na$total_shots, df_sample_without_na$total_goals)
+```
+
+
 # zblokované strely, počet gólov oponenta
+
+save/shots = shots-goals /shots
+```{r}
+df$save_percentage.home = round((df$shots.away-df$goals.away)/df$shots.away, 4)
+df$save_percentage.away = round((df$shots.home-df$goals.home)/df$shots.home, 4)
+```
+```{r}
+df_sample_without_na = sample_n(df, 1000)
+summary(df$save_percentage.away)
+summary(df_sample_without_na$save_percentage.away)
+summary(df$save_percentage.home)
+summary(df_sample_without_na$save_percentage.home)
+hist(df$save_percentage.away)
+hist(df_sample_without_na$save_percentage.away, main="", xlab="Save.away(%)", col="darkblue")
+hist(df$save_percentage.home)
+hist(df_sample_without_na$save_percentage.home, main="", xlab="Save.home(%)", col="darkred")
+```
+
+```{r}
+shapiro.test(df_sample_without_na$save_percentage.away)
+shapiro.test(df_sample_without_na$save_percentage.home)
+```
+
+
 # počet súbojov, počet trestných minút
+
+```{r}
+df$total_hits = df$hits.away + df$hits.home
+df$total_pim = df$pim.away + df$pim.home
+hist(df$total_hits)
+hist(df$total_pim)
+cor(df$total_hits, df$total_pim, use="complete.obs")
+```
+```{r}
+boxplot(df$total_hits)
+boxplot(df$total_pim)
+count(df[df$total_hits > 125])
+count(df[df$total_pim > 180])
+df$total_hits[df$total_hits > 125] = quantile(df$total_hits[!is.na(df$total_hits)], .75)
+df$total_pim[df$total_pim > 180] = quantile(df$total_pim, .75)
+```
+```{r}
+boxplot(df$total_hits)
+boxplot(df$total_pim)
+```
+
+
+```{r}
+set.seed(1)
+df_sample_without_na = sample_n(df[!is.na(df$total_hits)], 1000)
+summary(df$total_hits)
+summary(df_sample_without_na$total_hits)
+summary(df$total_pim)
+summary(df_sample_without_na$total_pim)
+hist(df$total_hits)
+hist(df_sample_without_na$total_hits, col="darkorange", xlab="Total hits", main="")
+hist(df$total_pim)
+hist(df_sample_without_na$total_pim, col="darkgreen", xlab="Total pim", main="")
+```
+```{r}
+plot(density(df_sample_without_na$total_hits))
+```
+
+```{r}
+shapiro.test(df_sample_without_na$total_hits)
+```
+Vidíme, že pre total_hits je p < 0.05, takže rozdelenie total_hits je signifikantne odlišné od normálneho rozdelenia. Zamietame normalitu.
+
+```{r}
+plot(density(df_sample_without_na$total_pim))
+```
+
+
+```{r}
+shapiro.test(df_sample_without_na$total_pim)
+```
+Nakoľko p < 0.05, normalitu zamietame aj pre total_pim.
+
+```{r}
+pairs(~ df_sample_without_na$total_pim + df_sample_without_na$total_hits, panel=function(x,y){
+  points(x,y)
+  abline(lm(y~x), col='red')
+})
+```
+
+```{r}
+levene.test(df_sample_without_na$total_hits, df_sample_without_na$total_pim)
+```
+
 
 
 
