@@ -223,10 +223,21 @@ subset(df, type=='A')
 ```{r}
 boxplot(df$goals.home)
 hist(df$goals.home)
+```
+Vhodné bude vypočítať si základnú deskriptívnu štatistiku atribútu goals.home.
+```{r}
+summary(df$goals.home)
+```
+Z grafov aj mediánu a priemeru môžeme vidieť že hodnota atribútu goals.home sa pohybuje okolo hodnoty 3 - maximum je vzhľadom na túto hodnotu pomerne veľmi vychýlené (až hodnota 12). Atribút však nenadobúda nezmyselné hodnoty a zmazaním vychýlených hodnôt by sme stratili dôležité informácie o niektorých zápasoch (veľké vítazstvá môžu mať výrazný dopad na odhadovanie výsledkov zápasov).
+```{r}
+qqnorm(df$goals.home)
+qqline(df$goals.home, col = "steelblue", lwd = 2)
+```
+Kedže počet gólov je celočíselná hodnota, krivka funkcie nebude spojitá. Funkcia však pomerne dobre pasuje s teoretickou lineárnou krivkou, odchylku môžeme sledovať až pri viac ako 8 góloch na strane domácich v zápase.
+```{r}
 boxplot(df$goals.away)
 hist(df$goals.away)
 ```
-
 
 ### Atribúty shots.home a shots.away
 **charakteristika:** atribút reprezentuje počet striel na bránu z pohľadu domáceho a hosťovského tímu.
