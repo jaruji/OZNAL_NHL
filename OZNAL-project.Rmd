@@ -510,6 +510,42 @@ par(mar=c(5,5,0,3))
 hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(200,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
 ```
 
+```{r}
+model_glm = glm(won.home ~ goals.home, data = df_sample_without_na, family = "binomial")
+```
+
+```{r}
+coef(model_glm)
+
+plot(won.home ~ goals.home, data = df_sample_without_na, 
+     col = "darkred",
+     main = "Logistic regression for goals.home")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame( goals.home = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+```
+```{r}
+model_glm = glm(won.away ~ goals.away, data = df_sample_without_na, family = "binomial")
+```
+
+```{r}
+coef(model_glm)
+
+plot(won.away ~ goals.away, data = df_sample_without_na, 
+     col = "darkred",
+     main = "Logistic regression for goals.away")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame( goals.away = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+```
+```
+
+
+
 
 # počet striel na bránu, počet gólov
 
@@ -587,7 +623,7 @@ shapiro.test(df_sample_without_na$save_percentage.away)
 shapiro.test(df_sample_without_na$save_percentage.home)
 ```
 ```{r}
-model_glm = glm(df_sample_without_na$save_percentage.home ~ df_sample_without_na$won.home, family = "binomial")
+model_glm = glm(won.home ~ save_percentage.home, data = df_sample_without_na, family = "binomial")
 ```
 
 ```{r}
@@ -595,12 +631,29 @@ coef(model_glm)
 
 plot(won.home ~ save_percentage.home, data = df_sample_without_na, 
      col = "darkred",
-     main = "Using Logistic Regression for Classification")
+     main = "Logistic regression for save_percentage.home")
 abline(h = 0, lty = 3)
 abline(h = 1, lty = 3)
 abline(h = 0.5, lty = 2)
 curve(predict(model_glm, data.frame(save_percentage.home = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
 abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+```
+```{r}
+model_glm = glm(won.away ~ save_percentage.away, data = df_sample_without_na, family = "binomial")
+```
+
+```{r}
+coef(model_glm)
+
+plot(won.away ~ save_percentage.away, data = df_sample_without_na, 
+     col = "darkred",
+     main = "Logistic regression for save_percentage.away")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame(save_percentage.away = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+```
 ```
 
 
