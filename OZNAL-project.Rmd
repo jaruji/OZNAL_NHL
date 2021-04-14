@@ -506,6 +506,13 @@ hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 1], main="
 par(mar=c(5,5,0,3))
 hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(200,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
 ```
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 1], main="" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+par(mar=c(5,5,0,3))
+hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(225,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
+```
 
 
 # počet striel na bránu, počet gólov
@@ -576,6 +583,21 @@ hist(df_sample_without_na$save_percentage.home, main="", xlab="Save.home(%)", co
 ```
 
 ```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df_sample_without_na$save_percentage.home[df_sample_without_na$won.home == 1], main="" , ylab="Won", xlab="", ylim=c(0,125), xlim=c(0.65,1) , xaxt="n", las=1 , col="darkolivegreen3", breaks=12)
+par(mar=c(5,5,0,3))
+hist(df_sample_without_na$save_percentage.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Save percentage", ylim=c(125,0), xlim=c(0.65,1), las=1 , col="tomato3"  , breaks=12)
+```
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df_sample_without_na$save_percentage.away[df_sample_without_na$won.away == 1], main="" , ylab="Won", xlab="", ylim=c(0,125), xlim=c(0.65,1) , xaxt="n", las=1 , col="darkolivegreen3", breaks=12)
+par(mar=c(5,5,0,3))
+hist(df_sample_without_na$save_percentage.away[df_sample_without_na$won.away == 0], main="" , ylab="Loss", xlab="Save percentage", ylim=c(125,0), xlim=c(0.65,1), las=1 , col="tomato3"  , breaks=12)
+```
+
+```{r}
 shapiro.test(df_sample_without_na$save_percentage.away)
 shapiro.test(df_sample_without_na$save_percentage.home)
 ```
@@ -641,6 +663,14 @@ pairs(~ df_sample_without_na$total_pim + df_sample_without_na$total_hits, panel=
   abline(lm(y~x), col='red')
 })
 ```
+
+```{r}
+farbicka <- rgb(240, 128, 128, max = 255, alpha = 50, names = "blue50")
+lajna <- lm(df_sample_without_na$total_hits ~ df_sample_without_na$total_pim, data = df_sample_without_na)
+plot(df_sample_without_na$total_pim, df_sample_without_na$total_hits, xlim = c(0, 120), ylim = c(0,120), main = "Nejaká závislosť (asi na drogách)", xlab = "Celkové tretné minútky", ylab = "Celkové hitys (vôbec ma to nehitlo)")
+abline(lajna, col = "black")
+points(x = df_sample_without_na$total_pim, y = df_sample_without_na$total_hits, pch = 18, col = farbicka)
+```;;
 
 ```{r}
 levene.test(df_sample_without_na$total_hits, df_sample_without_na$total_pim)
