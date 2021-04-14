@@ -13,6 +13,7 @@ library(corrplot)
 library(RColorBrewer)
 library(rcompanion)
 library(lawstat)
+library(moments)
 ```
 
 ## Dáta
@@ -494,8 +495,10 @@ hist(df_sample_without_na$won.away, breaks = 2)
 ```
 ```{r}
 plot(density(df_sample_without_na$goals.home))
+skewness(df_sample_without_na$goals.home)
 shapiro.test(df_sample_without_na$goals.home)
 plot(density(df_sample_without_na$goals.away))
+skewness(df_sample_without_na$goals.away)
 shapiro.test(df_sample_without_na$goals.away)
 ```
 
@@ -539,14 +542,18 @@ hist(df_sample_without_na$total_goals, col="darkgreen", xlab="Total goals", main
 ```
 ```{r}
 plot(density(df_sample_without_na$total_shots))
+skewness(df_sample_without_na$total_shots)
 shapiro.test(df_sample_without_na$total_shots)
 ```
 ```{r}
 plot(density(df_sample_without_na$total_goals))
+skewness(df_sample_without_na$total_goals)
 shapiro.test(df_sample_without_na$total_goals)
 ```
 ```{r}
-pairs(~ df_sample_without_na$total_shots + df_sample_without_na$total_goals, panel=function(x,y){
+total_shots_100 <- sample(df_sample_without_na$total_shots, 100)
+total_goals_100 <- sample(df_sample_without_na$total_goals, 100)
+pairs(~ total_shots_100 + total_goals_100, panel=function(x,y){
   points(x,y)
   abline(lm(y~x), col='red')
 })
@@ -556,7 +563,7 @@ levene.test(df_sample_without_na$total_shots, df_sample_without_na$total_goals)
 ```
 
 
-# zblokované strely, počet gólov oponenta
+# uspesnost zarkokov brankara, vyhra timu
 
 save/shots = shots-goals /shots
 ```{r}
@@ -578,6 +585,22 @@ hist(df_sample_without_na$save_percentage.home, main="", xlab="Save.home(%)", co
 ```{r}
 shapiro.test(df_sample_without_na$save_percentage.away)
 shapiro.test(df_sample_without_na$save_percentage.home)
+```
+```{r}
+model_glm = glm(df_sample_without_na$save_percentage.home ~ df_sample_without_na$won.home, family = "binomial")
+```
+
+```{r}
+coef(model_glm)
+
+plot(won.home ~ save_percentage.home, data = df_sample_without_na, 
+     col = "darkred",
+     main = "Using Logistic Regression for Classification")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame(save_percentage.home = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
 ```
 
 
@@ -621,6 +644,7 @@ plot(density(df_sample_without_na$total_hits))
 ```
 
 ```{r}
+skewness(df_sample_without_na$total_hits)
 shapiro.test(df_sample_without_na$total_hits)
 ```
 Vidíme, že pre total_hits je p < 0.05, takže rozdelenie total_hits je signifikantne odlišné od normálneho rozdelenia. Zamietame normalitu.
@@ -631,12 +655,15 @@ plot(density(df_sample_without_na$total_pim))
 
 
 ```{r}
+skewness(df_sample_without_na$total_pim)
 shapiro.test(df_sample_without_na$total_pim)
 ```
 Nakoľko p < 0.05, normalitu zamietame aj pre total_pim.
 
 ```{r}
-pairs(~ df_sample_without_na$total_pim + df_sample_without_na$total_hits, panel=function(x,y){
+total_pim_100 <- sample(df_sample_without_na$total_pim, 100)
+total_hits_100 <- sample(df_sample_without_na$total_hits, 100)
+pairs(~ total_pim_100 + total_hits_100, panel=function(x,y){
   points(x,y)
   abline(lm(y~x), col='red')
 })
