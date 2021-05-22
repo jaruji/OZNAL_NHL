@@ -1,0 +1,181 @@
+---
+title: "R Notebook"
+#output: rmarkdown::github_document
+output: html_notebook 
+---
+
+```{r}
+#nejake kniznice
+library(dplyr)
+library(tidyverse)
+library(data.table)
+library(corrplot)
+library(RColorBrewer)
+library(rcompanion)
+library(lawstat)
+library(moments)
+```
+
+## Dáta
+
+### Tabuľka game
+Tabuľka obsahuje základné dáta jednotlivých zápasov. Neobsahuje však detailné informácie o tímoch alebo tímových štatistikách konkrétneho zápasu. Dokážeme však pomocou atribútov game_id, away_team_id a home_team_id namapovať iné tabuľky tak, aby sme dostali jeden dataset so všetkými hodnotami.
+
+```{r}
+#setwd(dir) 
+path <- ('data/game.csv')
+game <- fread(path)
+head(game)
+```
+
+Niektoré atribúty sú z pohľadu štatistiky nezaujímavé a teda ich môžeme odstrániť pred spájaním tabuliek. Napríklad údaje o časovej zóne, alebo identifikátory štadiónov a pod.
+
+```{r}
+game <- subset(game, select=-c(venue_link,venue_time_zone_id, venue_time_zone_offset, venue_time_zone_tz))
+head(game)
+dim(game)
+```
+
+Prvotnou analýzou sme zistili, že v minulej sezóne sa odohralo približne 2500 zápasov, z čoho bolo +-10 percent v playoff. S týmto počtom zápasov nám stačí pracovať s poslednou sezónou pri trénovaní stroja.
+
+```{r}
+dim(game[game$season==20192020,])
+dim(subset(game, season==20192020 & type=='P'))
+```
+
+```{r}
+#game <- game[!(outcome %like% "tbc")]
+```
+
+Počet hier v minulej sezóne bol omnoho vyšší ako je zvykom, tak sme skontrolovali existenciu duplikátnych záznamov v tabuľke. Z výpisu nižšie sme odhalili 2570 duplikátov v celej tabuľke.
+
+```{r}
+game[duplicated(game)]
+```
+Aby sme si overili existenciu duplikátov, tak sme si vypísali náhodnú hru z vyššie vygenerovanej tabuľky duplikátov.
+
+```{r}
+game[game$game_id==2019020369]
+```
+
+Duplikáty sme eliminovali využitím funkcie distinct, ktorá zachová jedinečné záznamy. Elimináciu duplikátov sme overili opäť použitím funkcie duplicated, ktorá vrátila 0 záznamov. Počet záznamov v tabuľke klesol o 2570, aktuálny počet záznamov je teda 23735.
+
+```{r}
+game <- distinct(game)
+game[duplicated(game)]
+dim(game)
+```
+
+### Tabuľka game_teams_stats
+
+Druhá tabuľka obsahuje špecifické štatistiky tímov k jednotlivým zápasom. Problémom je, že jeden záznam obsahuje štatistiky iba jedného tímu. Teda máme pre jeden záznam zápasu z tabuľky games dva záznamy v tabuľke game_teams_stats. 
+
+```{r}
+path <- ('data/game_teams_stats.csv')
+game_teams_stats <- fread(path)
+head(game_teams_stats)
+```
+
+Vyhodili sme atribúty, ktoré nám nepomôžu pri štatistickom vyhodnocovaní a vypísali sme si informácie o datasete. Všimli sme si, že údajov je viac ako dva-krát viac oproti záznamom v tabuľke game. To znamená, že niektoré záznamy sú duplicitné, alebo chybné.
+
+```{r}
+game_teams_stats <- subset(game_teams_stats, select=-c(head_coach, startRinkSide, goals))
+head(game_teams_stats)
+dim(game_teams_stats)
+```
+Podľa unikátnych identifikátorov zápasov vidíme, že ich je rovnako ako v tabuľke game. To znamená, že v tabuľke game_teams_stats máme duplikáty, ktoré budeme musieť odstrániť.
+
+```{r}
+length(unique(game_teams_stats$game_id))
+```
+### Tabuľka team_info
+
+Táto tabuľka obsahuje iba základné infromácie o tímoch, ktoré nesúvisia so sezónami a zápasmi. Je však potrebná pre doplnenie mien tímov k jednotlivým hrám.
+
+```{r}
+path <- ('data/team_info.csv')
+team_info <- fread(path)
+head(team_info)
+```
+
+Z tejto tabuľky nám stačí extrahovať atribúty team_id, podľa ktorého spojíme tabuľky a abbreviation, ktorý nám doplní skratky názvov tímov ku zápasom.
+
+```{r}
+team_info <- subset(team_info, select=-c(franchiseId, link, shortName, teamName))
+head(team_info)
+dim(team_info)
+```
+
+### Spájanie tabuliek
+
+
+
+```{r}
+game_teams_stats <- left_join(game_teams_stats, team_info, "team_id")
+head(game_teams_stats)
+dim(game_teams_stats)
+```
+
+```{r}
+length(unique(game_teams_stats$team_id))
+```
+
+```{r}
+df_h <- game_teams_stats[(game_teams_stats$HoA == 'home'),]
+head(df_h)
+dim(df_h)
+df_h <- distinct(df_h)
+unique(df_h$HoA)
+```
+
+```{r}
+df_a <- game_teams_stats[(game_teams_stats$HoA == 'away'),]
+head(df_a)
+dim(df_a)
+df_a <- distinct(df_a)
+unique(df_a$HoA)
+```
+
+```{r}
+df <- left_join(df_a, df_h, "game_id", suffix = c(".away", ".home"))
+head(df)
+dim(df)
+```
+
+```{r}
+df <- left_join(game, df, "game_id")
+head(df)
+dim(df)
+```
+
+```{r}
+dim(df[df$season==20192020,])
+dim(subset(df, season==20192020 & type=='P'))
+```
+```{r}
+dim(df[df$season==20182019,])
+dim(subset(df, season==20182019 & type=='P'))
+```
+```{r}
+dim(df[df$season==20172018,])
+dim(subset(df, season==20172018 & type=='P'))
+```
+```{r}
+dim(df[df$season==20162017,])
+dim(subset(df, season==20162017 & type=='P'))
+```
+
+```{r}
+glimpse(df)
+```
+
+
+```{r}
+df <- subset(df, select=-c(game_id, date_time_GMT, outcome, home_rink_side_start, venue, away_team_id, home_team_id, settled_in.away))
+df <- rename(df, 'settled_in' = 'settled_in.home')
+df <- rename(df, 'goals.away' = 'away_goals')
+df <- rename(df, 'goals.home' = 'home_goals')
+head(df)
+dim(df)
+```
+

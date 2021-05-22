@@ -1,0 +1,334 @@
+---
+title: "R Notebook"
+#output: rmarkdown::github_document
+output: html_notebook 
+---
+
+```{r}
+#nejake kniznice
+library(dplyr)
+library(tidyverse)
+library(data.table)
+library(corrplot)
+library(RColorBrewer)
+library(rcompanion)
+library(lawstat)
+library(moments)
+library(forcats)
+```
+
+## Dáta
+
+### Tabuľka game
+Tabuľka obsahuje základné dáta jednotlivých zápasov. Neobsahuje však detailné informácie o tímoch alebo tímových štatistikách konkrétneho zápasu. Dokážeme však pomocou atribútov game_id, away_team_id a home_team_id namapovať iné tabuľky tak, aby sme dostali jeden dataset so všetkými hodnotami.
+
+```{r}
+#setwd(dir) 
+path <- ('data/game.csv')
+game <- fread(path)
+head(game)
+```
+
+Niektoré atribúty sú z pohľadu štatistiky nezaujímavé a teda ich môžeme odstrániť pred spájaním tabuliek. Napríklad údaje o časovej zóne, alebo identifikátory štadiónov a pod.
+
+```{r}
+game <- subset(game, select=-c(venue_link,venue_time_zone_id, venue_time_zone_offset, venue_time_zone_tz))
+head(game)
+dim(game)
+```
+
+Prvotnou analýzou sme zistili, že v minulej sezóne sa odohralo približne 2500 zápasov, z čoho bolo +-10 percent v playoff. S týmto počtom zápasov nám stačí pracovať s poslednou sezónou pri trénovaní stroja.
+
+```{r}
+dim(game[game$season==20192020,])
+dim(subset(game, season==20192020 & type=='P'))
+```
+
+```{r}
+#game <- game[!(outcome %like% "tbc")]
+```
+
+Počet hier v minulej sezóne bol omnoho vyšší ako je zvykom, tak sme skontrolovali existenciu duplikátnych záznamov v tabuľke. Z výpisu nižšie sme odhalili 2570 duplikátov v celej tabuľke.
+
+```{r}
+game[duplicated(game)]
+```
+Aby sme si overili existenciu duplikátov, tak sme si vypísali náhodnú hru z vyššie vygenerovanej tabuľky duplikátov.
+
+```{r}
+game[game$game_id==2019020369]
+```
+
+Duplikáty sme eliminovali využitím funkcie distinct, ktorá zachová jedinečné záznamy. Elimináciu duplikátov sme overili opäť použitím funkcie duplicated, ktorá vrátila 0 záznamov. Počet záznamov v tabuľke klesol o 2570, aktuálny počet záznamov je teda 23735.
+
+```{r}
+game <- distinct(game)
+game[duplicated(game)]
+dim(game)
+```
+
+### Tabuľka game_teams_stats
+
+Druhá tabuľka obsahuje špecifické štatistiky tímov k jednotlivým zápasom. Problémom je, že jeden záznam obsahuje štatistiky iba jedného tímu. Teda máme pre jeden záznam zápasu z tabuľky games dva záznamy v tabuľke game_teams_stats. 
+
+```{r}
+path <- ('data/game_teams_stats.csv')
+game_teams_stats <- fread(path)
+head(game_teams_stats)
+```
+
+Vyhodili sme atribúty, ktoré nám nepomôžu pri štatistickom vyhodnocovaní a vypísali sme si informácie o datasete. Všimli sme si, že údajov je viac ako dva-krát viac oproti záznamom v tabuľke game. To znamená, že niektoré záznamy sú duplicitné, alebo chybné.
+
+```{r}
+game_teams_stats <- subset(game_teams_stats, select=-c(head_coach, startRinkSide, goals))
+head(game_teams_stats)
+dim(game_teams_stats)
+```
+Podľa unikátnych identifikátorov zápasov vidíme, že ich je rovnako ako v tabuľke game. To znamená, že v tabuľke game_teams_stats máme duplikáty, ktoré budeme musieť odstrániť.
+
+```{r}
+length(unique(game_teams_stats$game_id))
+```
+### Tabuľka team_info
+
+Táto tabuľka obsahuje iba základné infromácie o tímoch, ktoré nesúvisia so sezónami a zápasmi. Je však potrebná pre doplnenie mien tímov k jednotlivým hrám.
+
+```{r}
+path <- ('data/team_info.csv')
+team_info <- fread(path)
+head(team_info)
+```
+
+Z tejto tabuľky nám stačí extrahovať atribúty team_id, podľa ktorého spojíme tabuľky a abbreviation, ktorý nám doplní skratky názvov tímov ku zápasom.
+
+```{r}
+team_info <- subset(team_info, select=-c(franchiseId, link, shortName, teamName))
+head(team_info)
+dim(team_info)
+```
+
+### Spájanie tabuliek
+
+
+
+```{r}
+game_teams_stats <- left_join(game_teams_stats, team_info, "team_id")
+head(game_teams_stats)
+dim(game_teams_stats)
+```
+
+```{r}
+length(unique(game_teams_stats$team_id))
+```
+
+```{r}
+df_h <- game_teams_stats[(game_teams_stats$HoA == 'home'),]
+head(df_h)
+dim(df_h)
+df_h <- distinct(df_h)
+unique(df_h$HoA)
+```
+
+```{r}
+df_a <- game_teams_stats[(game_teams_stats$HoA == 'away'),]
+head(df_a)
+dim(df_a)
+df_a <- distinct(df_a)
+unique(df_a$HoA)
+```
+
+```{r}
+df <- left_join(df_a, df_h, "game_id", suffix = c(".away", ".home"))
+head(df)
+dim(df)
+```
+
+```{r}
+df <- left_join(game, df, "game_id")
+head(df)
+dim(df)
+```
+
+```{r}
+dim(df[df$season==20192020,])
+dim(subset(df, season==20192020 & type=='P'))
+```
+```{r}
+dim(df[df$season==20182019,])
+dim(subset(df, season==20182019 & type=='P'))
+```
+```{r}
+dim(df[df$season==20172018,])
+dim(subset(df, season==20172018 & type=='P'))
+```
+```{r}
+dim(df[df$season==20162017,])
+dim(subset(df, season==20162017 & type=='P'))
+```
+
+```{r}
+glimpse(df)
+```
+
+
+```{r}
+df <- subset(df, select=-c(game_id, date_time_GMT, outcome, home_rink_side_start, venue, away_team_id, home_team_id, settled_in.away, HoA.away, HoA.home))
+df <- rename(df, 'settled_in' = 'settled_in.home')
+df <- rename(df, 'goals.away' = 'away_goals')
+df <- rename(df, 'goals.home' = 'home_goals')
+head(df)
+dim(df)
+```
+Atribúty HoA.home a Hoa.away boli redundantné, keďže informáciu o domácom a hosťujúcom tíme máme zahrnutú v atribúte team_id.home a team_id.away.
+
+## Prieskumná analýza datasetu
+
+Kedže cieľom práce je práca na predikčnom modeli, bude vhodné nepracovať s celým datasetom ale iba poslednými sezónami. Dôvôdom je častá obmena kádrov tímov NHL, čo môže mať za následok drasticky odlíšne výkony tímov medzi sezónami. Práca s veľkým množstvom sezón bude mať pravdepodobne za následok nízku presnosť modelu a neprehľadnosť grafov. 
+Dátovú množinu sme teda zmenšili na posledných 5 sezón, čo nám poskytne presnejšie výsledky pre aktuálne pravidlá zámorského hokeja.
+
+```{r}
+df <- df[df$season >= 20152016]
+print(df)
+```
+
+charakteristika dát, ich rozdelenie a identifikácia problémov (+ riešenie).
+
+```{r}
+glimpse(df)
+
+```
+V datasete máme 31 atribútov. Vyšší počet je ich najmä z dôvodu potreby štatistík o hre z pohľadu oboch tímov ktoré odohrali zápas (preto máme počet atribútov cca zdvojnásobený). V tejto sekcii práce sa budeme venovať analýze jednotlivých atribútov, resp. dvojíc  atribútov.
+
+### Atribút season
+**charakteristika:** atribút reprezentuje sezónu, v ktorej sa odohral NHL zápas. Dataset obsahuje sezóny od roku 2015-2020.
+
+```{r}
+unique(df$season)
+barplot(prop.table(table(df$season)), las=2, cex.names=.8, col=rgb(0.2,0.4,0.6,0.6), ylab="%", xlab="", main="Percentuálne rozdelenie atribútu season")
+mtext(text = "season", side = 1,line = 4)
+table(df$season)
+```
+Z grafu môžeme vidieť, že dataset obsahuje 5 zvolených sezón. Rozdelenie počtu hier v sezónach je percentuálne približne rovnaké (+- 3%), pričom najmenej odohraných hier bolo v poslednej sezóne - pravdepodobne zapríčinené pandemickou situáciou. Posledná sezóna v datasete je ročník 2019/2020, keďže aktuálna sezóna 2020/2021 ešte nie je ukončená a teda nie je súčasťou datasetu.
+
+### Atribút type
+**charakteristika:** atribút reprezentuje typ odohraného zápasu. Nadobúda tri základné hodnoty:
+
+* R - regular, označuje regulárne zápasy ktoré sa hrajú počas NHL sezóny
+* P - playoff, označuje zápasy vyraďovacej časti NHL, hrajú sa na konci sezóny. Tejto časti sa zúčastňujú iba najlepšie tímy.
+* A - ?
+```{r}
+cat("Unikátne hodnoty: \n")
+unique(df$type)
+cat(" \n Percentuálny podiel: \n")
+cat("R = ", (100/nrow(df))*nrow(df[df$type=='R']), "%\n")
+cat("P = ", (100/nrow(df))*nrow(df[df$type=='P']), "%\n")
+cat("A = ", (100/nrow(df))*nrow(df[df$type=='A']), "%\n")
+cat(" \n Počet výskytov:")
+table(df$type)
+barplot(prop.table(table(df$type)), las=2, cex.names=.8, col=rgb(0.2,0.4,0.6,0.6), ylab="%", xlab="type", main="Percentuálne rozdelenie atribútu type")
+```
+Z početností jednotlivých atribútov môžeme vidieť obrovskú prevahu zápasov regulárnej časti sezóny, čo aj zodpovedá skutočnosti. Použitie regulárnej sezóny na realizáciu trénovacieho datasetu a playoff na realizáciu testovacieho datatsetu nie je vhodné, pretože percentuálny podiel 92:7 nesedí s odporúčaným pomerom 70:30, alebo 80:20. Z tohoto dôvodu bude potrebné dodatočné prerozdelenie zápasov regulárnej sezóny tak, aby bol tento pomer splnený - bude riešené neskôr v práci. Hodnotu NA nemá žiaden atribút.
+
+Hodnotu 'A' nadobúda len 5 záznamov, v žiadnom z nich sa nejedná o zápasy tímov NHL (abbreviation = NA).
+```{r}
+subset(df, type=='A')
+```
+ V zdroji datasetu nie je vysvetlené, čo hodnota "A" v atribúte type reprezentuje. Predpokladáme, že sa jedná o exhibičné zápasy, pretože atribúty tímov nie sú namapované na žiadne NHL tímy.
+ 
+### Atribúty goals.home a goals.away
+**charakteristika:** atribút reprezentuje počet gólov z pohľadu domáceho a hosťovského tímu.
+
+```{r}
+boxplot(df$goals.home, ylab="Home goals", xlab="", main="Krabicový graf gólov domáceho tímu")
+hist(df$goals.home, xlab="Home goals", main="Histogram výskytov gólov domáceho tímu")
+boxplot(df$goals.away, ylab="Away goals", xlab="", main="Krabicový graf gólov hosťujúceho tímu")
+hist(df$goals.away, xlab="Away goals", main="Histogram výskytov gólov hosťujúceho tímu")
+```
+ 
+### Atribúty team_id.home a team_id.away
+**charakteristika:** Identifikačné číslo NHL tímu v rámci datasetu.
+
+Aktuálne sa v NHL nachádza 31 tímov, pričom sa tento počet od sezóny 2015/2016 nezmenil. Overíme, či sa v datatsete sedí počet tímov a pozrieme sa aj na počet hier každého tímu, ktorý sa môže meniť pri účasti vo vyraďovacej fáze.
+
+```{r}
+length(table(df$team_id.home))
+table(df$team_id.home)
+barplot(table(df$team_id.home), las=2, cex.names=.8, xlab="Frequency", ylab="Team ID", main="Počet hier pre domáce tímy", horiz=TRUE, xlim=c(0,250), space=c(1,1,1,1), col=c("salmon2"))
+table(df$team_id.away)
+barplot(table(df$team_id.away), las=2, cex.names=.8, xlab="Frequency", ylab="Team ID", main="Počet hier pre hosťujúce tímy", horiz=TRUE, xlim=c(0,250), space=c(1,1,1,1), col=c("salmon2"))
+```
+
+Zistili sme, že v datasete je viac ako 31 tímov. Taktiež z grafov môžeme vidieť, že niektoré tímy odohrali iba pár zápasov. Tieto zápasy si vypíšeme nižšie. Ostatné tímy majú približne rovnaký počet zápasov ~(200-230).
+
+```{r}
+df[df$team_id.away >= 55]
+```
+Z výpisu môžeme vidieť, že tímy s nízkym počtom zápasov sú exhibičné tímy, ktoré sme úvadzali vyššie - nejedná sa o tímy NHL.
+
+### Atribúty won.home a won.away
+**charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE alebo FALSE TRUE. Môže však nastať aj situácia v ktorej majú oba hodnotu FALSE.
+
+Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa vŠak v datasete nachádza 642x - jedná sa o remízy - tie boli v NHL zrušené, skontrolovať si to môžeme vypísaním unikátnych sezón v týchto 642 prípadoch.
+
+```{r}
+unique(df$won.home)
+unique(df$won.away)
+subset(df, won.home==TRUE & won.away==TRUE)
+subset(df, won.home==FALSE & won.away==FALSE)
+verify <- subset(df, won.home==FALSE & won.away==FALSE)
+```
+ 
+ Z výpisu môžeme vidieť, že remízy boli naposledy v sezóne 2017/2018.
+
+```{r}
+unique(verif$season)
+```
+
+
+```{r}
+table(is.na(df$won.home))
+table(is.na(df$won.away))
+```
+
+Atribúty won.home a won.away neobsahujú žiadne prázdne hodnoty, preto nie je potrebné volenie stratégie ich nahrádzania.
+
+### Atribúty shots.home a shots.away
+**charakteristika:** atribút reprezentuje počet striel na bránu z pohľadu domáceho a hosťovského tímu.
+
+```{r}
+boxplot(df$shots.home)
+hist(df$shots.home)
+boxplot(df$shots.away)
+hist(df$shots.away)
+```
+ 
+ Z histogramov možno vidieť, že atribúty shots majú normálnu distribúciu.
+```{r}
+table(is.na(df$shots.home))
+table(is.na(df$shots.away))
+```
+Keď sa bližsie pozrieme na výsledok funkcie is.na(), môžeme vidieť, že oba atribúty shots (home aj away) obsahujú prázdne hodnoty v 4 záznamoch. Tie je potrebné v rámci čistenia dát odstrániť, resp. nahradiť. Vhodnou metódou môže byť napr. nahradenie priemernou hodnotou striel na bránu z ostatných zápasov tímu v sezóne.
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
