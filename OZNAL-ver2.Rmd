@@ -398,6 +398,9 @@ hist(df$blocked.away)
 **charakteristika:** 
 
  
- 
+### Atribúty save_percentage.home a save_percentage.away
+**charakteristika:** 
+
+  
  
 
