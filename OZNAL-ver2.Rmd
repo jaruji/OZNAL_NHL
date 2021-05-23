@@ -176,6 +176,8 @@ df <- subset(df, select=-c(game_id, date_time_GMT, outcome, home_rink_side_start
 df <- rename(df, 'settled_in' = 'settled_in.home')
 df <- rename(df, 'goals.away' = 'away_goals')
 df <- rename(df, 'goals.home' = 'home_goals')
+df$save_percentage.home = round((df$shots.away-df$goals.away)/df$shots.away, 4)
+df$save_percentage.away = round((df$shots.home-df$goals.home)/df$shots.home, 4)
 head(df)
 dim(df)
 ```
@@ -281,7 +283,7 @@ verify <- subset(df, won.home==FALSE & won.away==FALSE)
  Z výpisu môžeme vidieť, že remízy boli naposledy v sezóne 2017/2018.
 
 ```{r}
-unique(verif$season)
+unique(verify$season)
 ```
 
 
