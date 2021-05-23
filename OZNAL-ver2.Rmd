@@ -15,6 +15,7 @@ library(rcompanion)
 library(lawstat)
 library(moments)
 library(forcats)
+library(car)
 ```
 
 ## Dáta
@@ -313,27 +314,101 @@ Keď sa bližsie pozrieme na výsledok funkcie is.na(), môžeme vidieť, že ob
 
 
 ### Atribúty hits.home a hits.away
-**charakteristika:** 
+**charakteristika:** atribút obsahuje hodnoty počtu narazení domáceho a hosťujúceho tímu. Narazenia, resp. osobné súboje vznikajú počas hry a pripočítavajú sa na stranu tímu, ktorý narazenie inicioval. Preto sa hodnoty medzi súperiacimi tímami nemusia rovnať.
+
+```{r}
+summary(df$hits.home)
+summary(df$hits.away)
+```
+Zo zhrnutia môžeme vidieť, že hodnoty môžu byť pravdivé, resp. neobsahujú čísla, ktoré by logicky nemohli nastať. Taktiež vidíme, že v štyroch záznamoch nám chýbajú hodnoty tohoto atribútu.
+
+```{r}
+df[is.na(df$hits.home)]
+df[is.na(df$hits.away)]
+```
+Väčšina zo záznamov s chýbajúcimi hodnotami, je z jednej sezóny. Vyzerá to ako preložené, alebo zrušené zápasy a budeme sa na to musieť pozrieť.
+
+```{r}
+hist(df$hits.home)
+hist(df$hits.away)
+```
+Diagram pripomína normálne rozdelenie hodnôt, ale obsahuje niekoľko vychýlených hodnôt, ktoré mohli nastať z dôvodu dlhších zápasov, napr. predĺženia.
 
 ```{r}
 boxplot(df$hits.home)
-hist(df$hits.home)
 boxplot(df$hits.away)
-hist(df$hits.away)
 ```
+Vidíme, že niektoré hodnoty sú veľmi vychýlené a mali by sme ich zmenšiť. Takéto vychýlené hodnoty nastávajú pri netradičných zápasoch, alebo derby, ktré sa konajú na zamrznutých jazerách. Preto môžeme hodnoty znížiť, alebo zmeniť na najčastejšiu hodnotu.
+
+```{r}
+qqnorm(df$hits.home, pch = 1, frame = FALSE)
+qqline(df$hits.home, col = "steelblue", lwd = 2)
+qqPlot(df$hits.home)
+qqnorm(df$hits.away, pch = 1, frame = FALSE)
+qqline(df$hits.away, col = "steelblue", lwd = 2)
+qqPlot(df$hits.away)
+```
+Z grafov môžeme vidieť, že hodnoty sa približujú normálnemu rozdeleniu, ale pri vyšších hodnotách sú odchylky vyššie. Môžeme analyzovať tieto hodnoty a skúsiť ich normalizovať.
+
+```{r}
+plot(density(na.omit(df$hits.home)))
+plotNormalDensity(df$hits.home)
+plot(density(na.omit(df$hits.away)))
+plotNormalDensity(df$hits.away)
+```
+Rozdelenie hodnôt veľmi pripomína normálne rozdelenie, pričom je voči krivke posunuté. PRe tento atribút bude potrebné spraviť test normality, aby sme si boli istý o aké rozdelenie sa jedná.
+
+```{r}
+plot(df$hits.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+plot(df$hits.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+```
+Z grafu hustoty vidíme, že hodnoty sú rozmanité, čo logicky sedí k zápasom NHL. No taktiež vidíme, že niektoré hodnoty sú veľmi riedke, hlavne najväčšie hodnoty a najmenšie. 
  
 ### Atribúty pim.home a pim.away
-**charakteristika:** 
+**charakteristika:** atribút hovorí o počte trestných minút pre jednotlivé tímy. Keďže sú najčastejšie vylúčenia sankciované dvoma minútami, tak sa budú párne hodnoty vyskytovať častejšie. No poznáme aj dlhšie tresty ako 2+2, 5, 5+2, alebo aj netradičné tresty. Vylúčenia do konca zápasu za nešportové správanie sa do tejto štatistiky nezarátavajú.
+
+```{r}
+summary(df$pim.home)
+summary(df$pim.away)
+```
+Zo zhodnotenia vidíme, že hodnoty sú priateľné a dávajú logicky zmysel, ale maximálne hodnoty sú veľmi vychýlené a záznamy majú chýbajúcu hodnotu pre tento atribút. 
+
+```{r}
+hist(df$pim.home)
+hist(df$pim.away)
+```
+Podľa grafu neobsahuje atribút normálne rozdelenie. Hodnoty skôr pripomínajú long-tail rozdelenie.
 
 ```{r}
 boxplot(df$pim.home)
-hist(df$pim.home)
 boxplot(df$pim.away)
-hist(df$pim.away)
 ```
+Krabicový graf nám iba potvrdil, že atribút obsahuje viacero vychýlených hodnôt, na ktoré sa budeme musieť pozrieť a navrhnúť možnú úpravu.
+
+```{r}
+qqnorm(df$pim.home, pch = 1, frame = FALSE)
+qqline(df$pim.home, col = "steelblue", lwd = 2)
+qqPlot(df$pim.home)
+qqnorm(df$pim.away, pch = 1, frame = FALSE)
+qqline(df$pim.away, col = "steelblue", lwd = 2)
+qqPlot(df$pim.away)
+```
+Q-Q grafy nám dokázali, že sa nejedná o normálne rozdelenie a hodnoty sa mu ani nepribližujú.
+
+
+```{r}
+plot(density(na.omit(df$pim.home)))
+plotNormalDensity(df$pim.home)
+plot(density(na.omit(df$pim.away)))
+plotNormalDensity(df$pim.away)
+plot(df$pim.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+plot(df$pim.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+```
+Atribút má veľmi nezvyčajú hustotu rozdelenia hodnôt, čo je zapríčinené hlavne z dvôdou dvojminutových trestov.
+
  
 ### Atribúty powerPlayOpportunities.home a powerPlayOpportunities.away
-**charakteristika:** 
+**charakteristika:** atribút hovorí o gólových príležitostiach počas presilových hier. Tento atribút sa odvíja od počtu presilovkových minút a teda očakávame medzi nimi koreláciu.
 
 ```{r}
 boxplot(df$powerPlayOpportunities.home)
@@ -341,9 +416,11 @@ hist(df$powerPlayOpportunities.home)
 boxplot(df$powerPlayOpportunities.away)
 hist(df$powerPlayOpportunities.away)
 ```
+Z grafov môžeme vidieť, hodnoty atribútu pripomínajú normálne rozdelenie s malým počtom vychýlených hodnôt. 
+ 
  
 ### Atribúty powerPlayGoals.home a powerPlayGoals.away
-**charakteristika:** 
+**charakteristika:** atribút reprezentuje počet presilovkových gólov pre oba tímy. Presilovkové góly sú v NHL časté, ale veľké počty presilovkových góolov sú nezvyčajné. Väčšinou je úspešnosť presiloviek okolo 20%, čo znamená jeden gól z piatich presilových hier.
 
 ```{r}
 boxplot(df$powerPlayGoals.home)
@@ -351,9 +428,10 @@ hist(df$powerPlayGoals.home)
 boxplot(df$powerPlayGoals.away)
 hist(df$powerPlayGoals.away)
 ```
+Grafy nám odhalili naklonené rozdelenia s malým počtom vychýlených hodnôt, ktoré môžeme neskôr analyzovať.
  
 ### Atribúty faceOffWinPercentage.home a faceOffWinPercentage.away
-**charakteristika:** 
+**charakteristika:** atribút hovorí o percentuálnom počte vyhratých vhadzovaní. Spolu tvorí atribút pre domácich a hostí 100% vhadovaní. 
 
 ```{r}
 boxplot(df$faceOffWinPercentage.home)
@@ -361,9 +439,10 @@ hist(df$faceOffWinPercentage.home)
 boxplot(df$faceOffWinPercentage.away)
 hist(df$faceOffWinPercentage.away)
 ```
+Atribút sa veľmi podobá normálnemu rozdeleniu, pričom obsahuje zopár vychýlených hôdnot, ako napr. 0, ktorá logicky nedáva zmysel a budeme sa na ňu musieť pozrieť.
  
 ### Atribúty giveaways.home a giveaways.away
-**charakteristika:** 
+**charakteristika:** atribút reprezentujúci odovzdané puky súperiacemu tímu bez súboja. Takýchto situácií sa v zápasoch vyskytuje viacero a nie sú nezvyčajným javom zápasu NHL.
 
 ```{r}
 boxplot(df$giveaways.home)
@@ -371,9 +450,10 @@ hist(df$giveaways.home)
 boxplot(df$giveaways.away)
 hist(df$giveaways.away)
 ```
+Hodnoty jemne pripomínajú normálne rozdelenie, ale je tam veľa vychýleých hodnôt, ktoré nemusia znamenať chyby merania.
  
 ### Atribúty takeaways.home a takeaways.away
-**charakteristika:** 
+**charakteristika:** atribút, ktorý reprezentuje počet odobraných pukov súperiacemu tímu. Tento atribút nie je komplementom vyššie spomenutého atribútu odovzdania pukov.
 
 ```{r}
 boxplot(df$takeaways.home)
@@ -383,7 +463,7 @@ hist(df$takeaways.away)
 ```
  
 ### Atribúty blocked.home a blocked.away
-**charakteristika:** 
+**charakteristika:** atribút súčtu zablokovaných striel na bránu. hráčmi, inými ako brankár. To znamená, že hráč zablokuje strelu na bránu hokejkou, korčuľou, alebo telom a puk sa vôbec nedostane k brankárovi. Zabkovania strely nie sú nezvyčajné v NHL, ale nevyskytujú sa vo veľkých počtoch, ako napr. strely na bránku.
 
 ```{r}
 boxplot(df$blocked.home)
@@ -391,18 +471,60 @@ hist(df$blocked.home)
 boxplot(df$blocked.away)
 hist(df$blocked.away)
 ```
+Hodnoty atribútu veľmi pripomínajú normálne rozdeleni, ale vidíme aj zopár vychýlených hodnôt, čo môže byť z dôvodu dlhší hier, napr. kvôli predĺženiu.
  
 ### Atribúty abbreviation.home a abbreviation.away
-**charakteristika:** 
+**charakteristika:** atribút, ktoréh hodnoty obsahujú iba tri písmená a reprezentuje skratkú tímov., ktoré prosti sebe nastúpili v zápase. Pre nami vybrané sezóny bolo v NHL 31 tímov a teda má tento atribút 31 unikátnych hodnôt.
 
 
 ### Atribúty settled_in.home a settled_in.away
-**charakteristika:** 
+**charakteristika:** atribút, ktorý ukazuje ako skončil zápas. V NHL môže zápas skončiť viacerými spôsobmi: v riadnom hracom čase, v predĺžení, po nájazdoch (v starších sezónach), alebo z netradičných dôvodov (roztopenie ľadu, výpadok elektrického prúsu, ...).
 
  
 ### Atribúty save_percentage.home a save_percentage.away
-**charakteristika:** 
+**charakteristika:** Tento atribút reprezentuje úspešnosť brankára v precentách. Úspešnosť brankára nie je súčasťou pôvodného datasetu - atribút sme si vytvorili a údaje doplnili na základe hodnôt z iných atribútov.
 
-  
+```{r}
+summary(df$save_percentage.home)
+summary(df$save_percentage.away)
+```
+Hodnoty úspešnosti brankárov sme vypočítali sami a poskytujú veľmi podobné priemerné hodnoty, ako uvádza oficiálna nHL stránka. Môžeme ale vidieť, že 14 záznamov má tento atribút nevyplnený.
+
+```{r}
+hist(df$save_percentage.home)
+hist(df$save_percentage.away)
+```
+Graf nám ukazuje, že hodnoty netvoria normálne rozdelenie. Skôr sú naklonené napravo s malým počtom vychýlených hodnôt.
+
+```{r}
+boxplot(df$save_percentage.home)
+boxplot(df$save_percentage.away)
+```
+Vychýlené hodnoty sú zo spodného kvantilu a nie je ich veľa. Môžeme sa na ne pozrieť a zhodnotiť ich úpravu.
+
+```{r}
+qqnorm(df$save_percentage.home, pch = 1, frame = FALSE)
+qqline(df$save_percentage.home, col = "steelblue", lwd = 2)
+qqPlot(df$save_percentage.home)
+qqnorm(df$save_percentage.away, pch = 1, frame = FALSE)
+qqline(df$save_percentage.away, col = "steelblue", lwd = 2)
+qqPlot(df$save_percentage.away)
+```
+Grafy nám ukazujú, že sa nejedná o normálne rozdelenie, pretože vrchné a spodné hodnoty majú vysokú odchylku.
+
+```{r}
+plot(density(na.omit(df$save_percentage.home)))
+plotNormalDensity(df$save_percentage.home)
+plot(density(na.omit(df$save_percentage.away)))
+plotNormalDensity(df$save_percentage.away)
+```
+Grafy hustoty s krivkou normálneho rozdelenia nám ukazujp, že hodnoty sa veľmi podobajú normálnemu rozdeleniu, ale obsahujú viacero lokálnych vrcholov, ktoré sú celkom nezvyčajné.
+
+```{r}
+plot(df$save_percentage.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+plot(df$save_percentage.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+```
+Graf hustoty hodnôt nám ukazuje, že medzi čístými výkonmi brankárov a inkasovaným aspoň jedným gólom je veľká medzera, čo znamená, že góly padajú aj pri menšom počte striel na bránu. Taktiež v niektorých zápasoch majú brankári veľmi majú percentuálnu úspešnosť, čo môže byť spôsobené zranením pri zákroku, z ktorého padol gól.
+
  
 
