@@ -237,9 +237,20 @@ Hodnotu 'A' nadobúda len 5 záznamov, v žiadnom z nich sa nejedná o zápasy t
 subset(df, type=='A')
 ```
  V zdroji datasetu nie je vysvetlené, čo hodnota "A" v atribúte type reprezentuje. Predpokladáme, že sa jedná o exhibičné zápasy, pretože atribúty tímov nie sú namapované na žiadne NHL tímy.
- 
+
 ### Atribúty goals.home a goals.away
 **charakteristika:** atribút reprezentuje počet gólov z pohľadu domáceho a hosťovského tímu.
+
+Nejedná sa o spojitý atribút - počet gólov môže nadobúdať iba celé hodnoty, jedná sa teda o diskrétny atribút.
+Už z podstaty atribútov goals.gome a goals.away vieme povedať, že sa nebude jednať o normálne rozdelenie, ale o distribúciu naklonenú vpravo (skewed right)  - toto vieme poznamenať ešte pred vizualizáciou prostredníctvom histogramov. Taktiež bude pravdepodobne obsahovať vychýlené hodnoty, keďže sa zvyknú vyskytovať zápasy s nadmerným počtom gólov. Reálny priemer sa však zvykne pohybovať okolo hodnoty 2 góly pre tím - predpokladáme, že v datasete tomu tak bude tiež. Na začiatku si teda oba atribúty vizualizujeme prostredníctvom krabicových grafov a histogramov, aby sme mohli overiť naše iniciálne predpoklady.
+
+```{r}
+cat("Základná štatistika pre goals.home", "\n")
+summary(df$goals.home)
+cat("\n","Základná štatistika pre goals.away", "\n")
+summary(df$goals.away)
+```
+Zo základnej štatistiky vieme povedať, že hodnoty sú koncentrované okolo počtu gólov 3 - konkrétne na základu priemeru a mediánu (menej citlivý na vychýlené hodnoty). Maximálny počet gólov pre domáce aj hosťujúce tímy je v oboch prípadoch 10. Podľa tretieho kvantilu = 4 vieme povedať, že hodnota 10 pôsobí vychýlene. Najvyššia koncentrácia vyzerá bude v pri hodnotách 2,3,4.
 
 ```{r}
 boxplot(df$goals.home, ylab="Home goals", xlab="", main="Krabicový graf gólov domáceho tímu")
@@ -247,7 +258,65 @@ hist(df$goals.home, xlab="Home goals", main="Histogram výskytov gólov domáceh
 boxplot(df$goals.away, ylab="Away goals", xlab="", main="Krabicový graf gólov hosťujúceho tímu")
 hist(df$goals.away, xlab="Away goals", main="Histogram výskytov gólov hosťujúceho tímu")
 ```
- 
+Dodatočne ešte overíme, či neexistujú chýbajúce hodnoty týchto atribútov v niektorých záznamoch:
+```{r}
+cat("Počet záznamov kde je goals.home NA", nrow(subset(df, is.na(goals.home)==TRUE)), '\n')
+cat("Počet záznamov kde je goals.away NA",nrow(subset(df, is.na(goals.away)==TRUE)),'\n')
+```
+Ani jeden záznam nenadobúda pri atribútoch goals.home a goals.away NA hodnoty, preto nebude potrebné riešiť voľbu stratégie dopĺňania týchto hodnôt.
+
+
+Už z vizualizácií atribútov vidíme, že predpoklady boli korektné. Histogramy oboch atribútov sú veľmi podobné - obe majú distribúciu naklonenú vpravo, určite sa nebude jednať o normálne rozdelenie - z tohoto dôvodu netreba ani vykonávať test normality.
+Z histogramov možno vyčítať, že domáci tím strelí v priemere viac gólov ako hosťujúci tím - zatiaľ čo pri hosťujúcich tímoch nadobúdajú záznamy najčastejšie hodnotu 0 gólov, pri domácich tímoch je maximálna frekvencia pri hodnote 2 góly. Z tejto skutočnosti môžeme vyvodiť hypotézu, že domáce prostredie môže mať reálny vplyv na priemerný počet strelených gólov, resp. vonkajšie prostredie znižuje priemerný počet strelených gólov. 
+Pri krabicových grafoch možno sledovať úplnú identitu týchto grafov pre oba atribúty, čo je zaujímavý jav, keďže histogramy sú mierne odlišné. Väčšina hodnôt sa pohybuje v rozmedzí 2-4 góly, čiže náš počiatočný predpoklad bol čiastočne korektný. Vychýlené hodnoty sú v oboch prípadoch počet 8, 9 a 10 gólov. Pre overenie si tieto maximálne hodnoty pre oba atribúty vypíšeme, pričom zaujímavý bude najmä počet záznamov, ktorý tieto hodnoty nadobúda.
+
+```{r}
+subset(df, goals.home >= 8)
+cat("Počet vychýlených hodnôt atribútu goals.home podľa krabicového grafu:", nrow(subset(df, goals.home >= 8)))
+```
+
+
+```{r}
+subset(df, goals.away >= 8)
+cat("Počet vychýlených hodnôt atribútu goals.away podľa krabicového grafu:", nrow(subset(df, goals.away >= 8)))
+```
+Z výpisov vidíme, že počet zápasov v ktorých domáci tím strelil 8 a viac gólov je 48, zatiaľ čo počet zápasov v ktorých vonkajší tím strelil 8 a viac gólov je 23 - tento fakt len podporuje hypotézu, že domáce prostredie má reálny vplyv na množstvo strelených gólov. Krabicový graf tieto hodnoty označuje ako vychýlené, no keďže obsahujú dôležité informácie a jedná sa o reálne hodnoty (nie napr. chyby senzorov), tieto hodnoty nie je vhodné odstraňovať a ani normovať, resp. zrážat na nižšiu hodnotu.
+
+V analýze atribútu budeme pokračovat prostredníctvom QQplotu, ktorý zobrazuje odchylku od teoretického normálneho rozdelenia.
+```{r}
+qqnorm(df$goals.home)
+qqline(df$goals.home, col = "red", lwd = 2, main="Q-Q Plot atribútu goals.home")
+```
+```{r}
+qqnorm(df$goals.away)
+qqline(df$goals.away, col = "red", lwd = 2, main="Q-Q Plot atribútu goals.away")
+```
+
+
+Ako už bolo spomínane v úvode analýzy týchto atribútov, nejedná sa o spojité hodnoty - táto skutočnost je viditeľná aj na grafe, kedy hodnoty atribútu goals.home nie sú spojité - toto správanie je očakávané, keďže počty gólov musia byť celé čisla. Z grafov môžeme vidieť, že počet gólov sa vychyľuje od teoretického normálneho rozdelenia.
+
+
+```{r}
+plotNormalDensity(df$goals.home, main = "Diagram hustoty atribútu goals.home")
+```
+
+
+```{r}
+plotNormalDensity(df$goals.away, main = "Diagram hustoty atribútu goals.away")
+```
+Z oboch diagramov hustoty môžeme vidieť už predom spomínaný fakt - atribúty goals.home a goals.away nepochádzajú z normálneho rozdelenia - výrazne vychýlené od krivky hustoty normálneho rozdelenia sú najmä hodnoty v intervale od (1-5 gólov) na x-ovej osi. Kostrbatosť grafu spôsobuje fakt, že dáta nie sú spojité.
+
+```{r}
+plot(x=df$goals.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE,main = "Diagram rozptýlenia atribútu goals.home")
+```
+
+```{r}
+plot(df$goals.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main = "Diagram rozptýlenia atribútu goals.away")
+```
+Z grafov rozptýlenia vidieť, že podobne ako bolo viditeľné ak v krabicovom grafe, vychýlené hodnoty sú pri počte gólov >=8 - vychýlenosť idnikuje menšia hustota záznamov nadobúdajúcich hodnoty atribútov goals.home a goals.away >= 8 (na grafe viditeľné ako pomerne výrazný pokles "bodiek"). Ako už však bolo spomínané, odstránenie alebo úprava týchto hodnôt by so sebou niesla riziko straty dôležitých informácií - preto bude vhodné tieto hodnoty ponechať, keďže sa jedná o reálne údaje. Z grafu nie je príliš dobre vidieť, pre aký počet gólov je najväčšia koncentrácia záznamov (príliš veľa záznamov spôsobuje nízku čitateľnosť grafu) - už z krabicového grafu však vieme, že najvyššia koncentrácia je v rozmedzí 2-4 gólov, čiže táto informácia už nie je kľúčová.
+
+**Zhrnutie**: atribúty goals.home a goals.away sú diskrétne atribúty, ktoré nepochádzajú z normálneho rozdelenia (viditeľné na histogramoch, QQ-plotoch a grafoch hustoty), ich distribúcia je podľa očakávaní naklonená vpravo. Z grafov rozptýlenia a krabicových grafov vidieť, že za vychýlené hodnoty možno pri oboch atribútoch považovať počty gólov väčšie rovné ako 8 - z dôvodu významnosti tejto informácie však tieto hodnoty neplánujeme nijako upravovať. Oba atribúty možno z hľadiska plánovaných hypotéz považovať za kľúčové.
+
 ### Atribúty team_id.home a team_id.away
 **charakteristika:** Identifikačné číslo NHL tímu v rámci datasetu.
 
