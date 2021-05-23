@@ -528,3 +528,143 @@ Graf hustoty hodnôt nám ukazuje, že medzi čístými výkonmi brankárov a in
 
  
 
+## Párová analýza
+
+V tejto časti chceme identifikovať možné vzťahy medzi jednotlivými atribútmi prostredníctvom výpočtu korelácií, respektíve korelačnej matice.
+Nakoľko niektoré atribúty obsahujú nenumerické hodnoty, pre prvotnú identifikáciu možných vzťahov medzi atribútmi použijeme iba atribúty s numerickými hodnotami. Čo sa týka nenumerických atribútov **won.home** a **won.away**, tie aktuálne obsahujú pravdivostné hodnoty TRUE alebo FALSe a teda ich môžeme zmeniť na numerické (nahradením TRUE za 1 a FALSE za 0).
+
+```{r}
+df$won.home[df$won.home == "TRUE"] <- "1"
+df$won.home[df$won.home == "FALSE"] <- "0"
+df$won.away[df$won.away == "TRUE"] <- "1"
+df$won.away[df$won.away == "FALSE"] <- "0"
+class(df$won.home) = "numeric"
+class(df$won.away) = "numeric"
+unique(df$won.home)
+unique(df$won.away)
+```
+
+Pre vytvorenie korelačnej matice potrebujeme numerické atribúty. Vytvoríme si pomocný dataset, ktorý bude obsahovať iba numerické atribúty pôvodného datasetu.
+
+```{r}
+df_numeric <- subset(df, select=-c(type, abbreviation.away, settled_in, abbreviation.home))
+sapply(df_numeric, is.numeric)
+```
+
+Z výpisu vyššie môžeme vidieť, že všetky atribúty pomocného datasetu **df_numeric** sú numerické. Môžeme vytvoriť korelačnú maticu.
+
+```{r}
+corrplot(cor(df_numeric, use="complete.obs"), type="lower", method="color", tl.col="black")
+```
+
+Z korelačnej matice môžeme vidieť, že najväčšia korelácia (záporná) je medzi atribútmi **won.home** a **won.away**, čo je pochopiteľné, pretože keď jeden tím vyhrá, druhý musí prehrať. Podobné záporné korelácie môžeme vidieť medzi atribútmi **faceOffWinPercentage.home** a **faceOffWinPercentage.away**, ktoré hovoria o vyhratých vhadzovaniach. Ďalšie korelácie sú medzi atribútmi:
+
+```{r}
+cor(df$won.home, df$goals.home)
+```
+Korelácia týchto dvoch atribútov je tiež logická. Môžeme z nej vyvodiť, že čím viac gólov tím strelí, tým je väčšia šanca, že zápas vyhrá. Podobne to platí aj pre atribúty **won.away** a **goals.away**:
+
+```{r}
+cor(df$won.away, df$goals.away)
+```
+Rovnako môžeme sledovať aj koreláciu medzi atribútmi **won.away** a **goals.home** alebo **won.home** a **goals.away**. V tomto prípade však budú korelácie záporné:
+
+```{r}
+cor(df$won.away, df$goals.home)
+cor(df$won.home, df$goals.away)
+```
+Ďalšiu koreláciu môžeme pozorovať medzi atribútmi **pim.home** a **pim.away**. Atribúty hovoria o trestných minutách tímov. Určitá korelácia je pochopiteľná, pretože ak sa napríklad dvaja hráči pobijú, idú obaja na trestnú lavičku. V takomto prípade dostávajú trestné minúty oba tíma zároveň, čoho dôsledkom je zvýšená korelácia týchto atribútov. Atribúty však obsahujú N/A hodnoty, takže ich pre znázornenie korelácie budeme ignorovať.
+
+```{r}
+cor(df$pim.home, df$pim.away, use="complete.obs")
+```
+Trestné minúty jedného tímu znamenajú presilovku druhého tímu. Z toho tiež vyplýva korelácia medzi atribútmi **pim.home** s **powerPlayOpportunities.away** a naopak **pim.away** a **powerPlayOpportunities.home**:
+
+```{r}
+cor(df$pim.home, df$powerPlayOpportunities.away, use="complete.obs")
+cor(df$pim.away, df$powerPlayOpportunities.home, use="complete.obs")
+```
+Z vyššie uvedených korelácií medzi jednotlivými atribútmi môžeme vytvoriť určié hypotézy, ktoré budeme v ďalších fázach projektu overovať:
+
+### Hypotézy
+
+
+
+## Čistenie a úprava dát
+
+V tejto kapitole sa venujeme čisteniu a úprave dát. Niektoré úpravy sme však spravili už pred analýzou. Tieto úpravy, ako napríklad deduplikáciu dát, bolo potrebné spraviť hneď na začiatku projektu, pretože sa týkali vytvárania datasetu, ktorý v projekte používame. Dataset sme vytvorili spojením 3 tabuliek. Okrem deduplikácie dát sme tiež odstránili niektoré atribúty a iné sme naopak pridali, respektíve vytvorili (ako napríklad vytvorenie atribútu úspešnosti brankára, ktorá sa počíta na základe gólov a striel oponenta).
+Cieľom tejto kapitoly je, aby všetky záznamy obsahovali údaje pre všetky atribúty. Je teda potrebné odstrániť všetky N/A hodnoty.
+Z analýzy atribútu **type** vieme, že náš dataset obsahuje výsledky niektorých zápasov, ktoré nespadajú do súťaže NHL. Pre začiatok sa pozrieme, aké atribúty obsahujú N/A hodnoty a následne odstránime dané zápasy, ktoré nepatria do NHL (takéto zápasy majú hodnotu atribútu **type** rovnú 'A').
+
+```{r}
+cbind(lapply(lapply(df, is.na), sum))
+```
+Teraz môžeme odstrániť spomínané zápasy, ktoré nepatria pod NHL.
+
+```{r}
+table(df$type)
+df = df[!(df$type == 'A')]
+table(df$type)
+```
+Ako môžeme vidieť z výpisu vyššie, dataset už neobsahuje žiade zápasy, ktoré by mali hodnotu atribútu **type** rovnú 'A'. Teraz sa pozrieme, či to nejakým spôsobom ovplyvnilo počet N/A hodnôt ostatných atribútov.
+
+```{r}
+cbind(lapply(lapply(df, is.na), sum))
+```
+Môžeme si všimnúť, že zmizli všetky N/A hodnoty atribútov **abbrevation.away** a **abbreviation.home**. Teraz začneme postupne prechádzať ostatné atribúty obsahujúce N/A hodnoty, pričom navrhneme spôsob akým ich nahradíme.
+
+```{r}
+df[is.na(df$shots.away)]
+```
+
+Z výpisu záznamov, ktoré obsahujú N/A hodnotu v atribúte **shots_away** si môžeme všimnúť, že aj ďalšie atribúty majú N/A hodnoty. Môžeme predpokladať, že všetky N/A hodnoty v našom datasete sú obsiahnuté v práve týchto 4 konkrétnych zápasoch. Vypíšeme si čísla tímov jednotlivých atribútov, ktoré obsahujú N/A hodnoty. Ak sa čísla tímov budú zhodovať, znamená to, že všetky N/A hodnoty sú obsiahnuté v spomínaných 4 zápasoch.
+
+```{r}
+df$team_id.away[is.na(df$shots.away)]
+df$team_id.away[is.na(df$hits.away)]
+df$team_id.away[is.na(df$pim.away)]
+df$team_id.away[is.na(df$powerPlayOpportunities.away)]
+df$team_id.away[is.na(df$powerPlayGoals.away)]
+df$team_id.away[is.na(df$faceOffWinPercentage.away)]
+df$team_id.away[is.na(df$giveaways.away)]
+df$team_id.away[is.na(df$takeaways.away)]
+df$team_id.away[is.na(df$blocked.away)]
+df$team_id.away[is.na(df$shots.home)]
+df$team_id.away[is.na(df$hits.home)]
+df$team_id.away[is.na(df$pim.home)]
+df$team_id.away[is.na(df$powerPlayOpportunities.home)]
+df$team_id.away[is.na(df$powerPlayGoals.home)]
+df$team_id.away[is.na(df$faceOffWinPercentage.home)]
+df$team_id.away[is.na(df$giveaways.home)]
+df$team_id.away[is.na(df$takeaways.home)]
+df$team_id.away[is.na(df$blocked.home)]
+```
+```{r}
+df$team_id.home[is.na(df$shots.away)]
+df$team_id.home[is.na(df$hits.away)]
+df$team_id.home[is.na(df$pim.away)]
+df$team_id.home[is.na(df$powerPlayOpportunities.away)]
+df$team_id.home[is.na(df$powerPlayGoals.away)]
+df$team_id.home[is.na(df$faceOffWinPercentage.away)]
+df$team_id.home[is.na(df$giveaways.away)]
+df$team_id.home[is.na(df$takeaways.away)]
+df$team_id.home[is.na(df$blocked.away)]
+df$team_id.home[is.na(df$shots.home)]
+df$team_id.home[is.na(df$hits.home)]
+df$team_id.home[is.na(df$pim.home)]
+df$team_id.home[is.na(df$powerPlayOpportunities.home)]
+df$team_id.home[is.na(df$powerPlayGoals.home)]
+df$team_id.home[is.na(df$faceOffWinPercentage.home)]
+df$team_id.home[is.na(df$giveaways.home)]
+df$team_id.home[is.na(df$takeaways.home)]
+df$team_id.home[is.na(df$blocked.home)]
+```
+Z výpisov môžeme vidieť, že sa čísla tímov pre všetky atribúty obsahujúce N/A hodnoty opakujú. Z toho vyplýva, že všetky N/A hodnoty v našom datasete sú z práve týchto 4 konkrétnych zápasov. Tieto zápasy pre nás teda nemajú žiadny prínos, pretože im chýbajú hodnoty veľkého množstva atribútov. Z tohto dôvodu nebudeme N/A hodnoty nijakým spôsobom nahrádzať a záznamy o daných zápasoch z datesetu jednoducho vymažeme.
+
+```{r}
+df = df[!(is.na(df$shots.away))]
+cbind(lapply(lapply(df, is.na), sum))
+```
+Ako môžeme vidieť z výpisu vyššie, po odstránení záznamov, ktoré obsahujú N/A hodnoty v atribúte **shots.away**, zmizli všetky N/A hodnoty z celého datasetu, čím sme opäť overili, že všetky N/A hodnoty pochádzali z rovnakých 4 záznamov.
+
+
