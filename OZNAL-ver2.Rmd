@@ -310,24 +310,93 @@ table(is.na(df$shots.away))
 Keď sa bližsie pozrieme na výsledok funkcie is.na(), môžeme vidieť, že oba atribúty shots (home aj away) obsahujú prázdne hodnoty v 4 záznamoch. Tie je potrebné v rámci čistenia dát odstrániť, resp. nahradiť. Vhodnou metódou môže byť napr. nahradenie priemernou hodnotou striel na bránu z ostatných zápasov tímu v sezóne.
 
 
+### Atribúty hits.home a hits.away
+**charakteristika:** 
 
+```{r}
+boxplot(df$hits.home)
+hist(df$hits.home)
+boxplot(df$hits.away)
+hist(df$hits.away)
+```
  
+### Atribúty pim.home a pim.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$pim.home)
+hist(df$pim.home)
+boxplot(df$pim.away)
+hist(df$pim.away)
+```
  
+### Atribúty powerPlayOpportunities.home a powerPlayOpportunities.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$powerPlayOpportunities.home)
+hist(df$powerPlayOpportunities.home)
+boxplot(df$powerPlayOpportunities.away)
+hist(df$powerPlayOpportunities.away)
+```
  
+### Atribúty powerPlayGoals.home a powerPlayGoals.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$powerPlayGoals.home)
+hist(df$powerPlayGoals.home)
+boxplot(df$powerPlayGoals.away)
+hist(df$powerPlayGoals.away)
+```
  
+### Atribúty faceOffWinPercentage.home a faceOffWinPercentage.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$faceOffWinPercentage.home)
+hist(df$faceOffWinPercentage.home)
+boxplot(df$faceOffWinPercentage.away)
+hist(df$faceOffWinPercentage.away)
+```
  
+### Atribúty giveaways.home a giveaways.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$giveaways.home)
+hist(df$giveaways.home)
+boxplot(df$giveaways.away)
+hist(df$giveaways.away)
+```
  
+### Atribúty takeaways.home a takeaways.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$takeaways.home)
+hist(df$takeaways.home)
+boxplot(df$takeaways.away)
+hist(df$takeaways.away)
+```
  
+### Atribúty blocked.home a blocked.away
+**charakteristika:** 
+
+```{r}
+boxplot(df$blocked.home)
+hist(df$blocked.home)
+boxplot(df$blocked.away)
+hist(df$blocked.away)
+```
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
+### Atribúty abbreviation.home a abbreviation.away
+**charakteristika:** 
+
+
+### Atribúty settled_in.home a settled_in.away
+**charakteristika:** 
+
  
  
  
