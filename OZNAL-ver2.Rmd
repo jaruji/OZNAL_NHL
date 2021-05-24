@@ -820,6 +820,33 @@ shapiro.test(shapiro_df$goals.away)
 ```
 Zo Shapiro-Wilkovho testu môžeme vidieť, že ani jeden z atribútov goals.home a goals.away nemá normálne rozdelenie. Pretože v oboch prípadoch je hodnota p < 0.05.
 
+```{r}
+model_glm = glm(won.home ~ goals.home, data = df, family = "binomial")
+coef(model_glm)
+
+plot(won.home ~ goals.home, data = df, 
+     col = "darkred",
+     main = "Logistic regression for goals.home")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame( goals.home = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+
+model_glm = glm(won.away ~ goals.away, data = df, family = "binomial")
+coef(model_glm)
+
+plot(won.away ~ goals.away, data = df, 
+     col = "darkred",
+     main = "Logistic regression for goals.away")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame( goals.away = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+```
+Podľa regresie môžeme vidieť, že domácemu tímu stačí často streliť menej gólov na výhru, ako hosťujúcemu. Z reálneho hladiska by sme však obe čísla zaokrúhlili na celé číslo 3, pretože góly nemôžeme reprezentovať desatinnými číslami. Logistický regresný model teda potvrdzuje našu hypotézu: Tím, ktorý v zápase strelí viac ako 3 góly (vrátane), pravdepodobne vyhrá.
+
 #### Hypotéza 2.
 Čím je väčší súhrnný počet striel na bránu, tým viac gólov padne v zápase.
 
@@ -855,6 +882,15 @@ shapiro.test(shapiro_df$goals.home+shapiro_df$goals.away)
 ```
 Podľa výsledkov Shapiro-Wilkovho testu nie je ani jedna z hodnôt všetkých gólov a všetkých striel v zápase s normálnym rozdelením.
 
+```{r}
+total_shots <- df$shots.home+df$shots.away
+total_goals <- df$goals.home+df$goals.away
+pairs(~ total_shots + total_goals, panel=function(x,y){
+  points(x,y)
+  abline(lm(y~x), col='red')
+})
+```
+
 #### Hypotéza 3.
 Čím je v zápase viac hitov, tým je zápas ostrejší a tým pádom rozhodcovia udelia tímom súhrnne viac trestných minút.
 
@@ -876,6 +912,16 @@ shapiro.test(shapiro_df$pim.home+shapiro_df$pim.away)
 ```
 Oba testy normality nám dokázali, že ani súčet všetkých osobných súbojov v hre a ani súčet všetkých presilovkových minút nemajú normálne rozdelenia.
 
+```{r}
+total_pim <- df$pim.home+df$pim.away
+total_hits <- df$hits.home+df$hits.away
+pairs(~ total_pim + total_hits, panel=function(x,y){
+  points(x,y)
+  abline(lm(y~x), col='red')
+})
+```
+
+
 #### Hypotéza 4.
 Čím má brankár vyššiu úspešnosť zákrokov, tým s väčšou pravdepodobnosťou jeho tím vyhrá.
 
@@ -885,13 +931,13 @@ Atribúty save_percentage boli vypočítané ako pomer počtu zákrokov brankár
 ```{r}
 par(mfrow=c(2,1))
 par(mar=c(0,5,3,3))
-hist(df$save_percentage.home[df$won.home == 1], main="Savba percentage (home)" , ylab="Win", xlab="", ylim=c(0,1500), xlim=c(0.55,1) , xaxt="n", las=1 , col="slateblue1", breaks=12)
+hist(df$save_percentage.home[df$won.home == 1], main="Úspešnosť brankára (home)" , ylab="Win", xlab="", ylim=c(0,1500), xlim=c(0.55,1) , xaxt="n", las=1 , col="slateblue1", breaks=12)
 par(mar=c(5,5,0,3))
 hist(df$save_percentage.home[df$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1500,0), xlim=c(0.55,1), las=1 , col="tomato3"  , breaks=16)
 
 par(mfrow=c(2,1))
 par(mar=c(0,5,3,3))
-hist(df$save_percentage.away[df$won.away == 1], main="Savba percentage (away)" , ylab="Win", xlab="", ylim=c(0,1500), xlim=c(0.55,1), xaxt="n", las=1 , col="slateblue1", breaks=12)
+hist(df$save_percentage.away[df$won.away == 1], main="Úspešnosť brankára (away)" , ylab="Win", xlab="", ylim=c(0,1500), xlim=c(0.55,1), xaxt="n", las=1 , col="slateblue1", breaks=12)
 par(mar=c(5,5,0,3))
 hist(df$save_percentage.away[df$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1500,0), xlim=c(0.55,1), las=1 , col="tomato3"  , breaks=16)
 ```
