@@ -492,94 +492,110 @@ df[is.na(df$hits.away)]
 Väčšina zo záznamov s chýbajúcimi hodnotami, je z jednej sezóny. Vyzerá to ako preložené, alebo zrušené zápasy a budeme sa na to musieť pozrieť.
 
 ```{r}
-hist(df$hits.home)
-hist(df$hits.away)
+hist(df$hits.home, xlab="Home hits", main="Histogram hitov domáceho tímu")
+hist(df$hits.away, xlab="Away hits", main="Histogram hitov hosťujúceho tímu")
 ```
-Diagram pripomína normálne rozdelenie hodnôt, ale obsahuje niekoľko vychýlených hodnôt, ktoré mohli nastať z dôvodu dlhších zápasov, napr. predĺženia.
+Diagram pripomína normálne rozdelenie hodnôt, ale obsahuje niekoľko vychýlených hodnôt, ktoré mohli nastať z dôvodu dlhších zápasov, napr. predĺženia. Pre tento atribút bude vhodné vykonať Shapiro-Wilkov test normality, aby sme sa uistili, že rozdelenie normálne naozaj nebude.
 
 ```{r}
-boxplot(df$hits.home)
-boxplot(df$hits.away)
+boxplot(df$hits.home,  ylab="Home hits", main="Krabicový graf hitov domáceho tímu")
+boxplot(df$hits.away, ylab="Away hits", main="Krabicový graf hitov domáceho tímu")
 ```
-Vidíme, že niektoré hodnoty sú veľmi vychýlené a mali by sme ich zmenšiť. Takéto vychýlené hodnoty nastávajú pri netradičných zápasoch, alebo derby, ktré sa konajú na zamrznutých jazerách. Preto môžeme hodnoty znížiť, alebo zmeniť na najčastejšiu hodnotu.
+Vidíme, že niektoré hodnoty sú veľmi vychýlené a mali by sme ich zmenšiť. Takéto vychýlené hodnoty nastávajú pri netradičných zápasoch, alebo derby, ktré sa konajú na zamrznutých jazerách. Preto môžeme hodnoty znížiť, alebo zmeniť na najčastejšiu hodnotu. Hodnoty ale nie sú extrémne vychýlené, v intervale medzi 50-80 je ich pomerne dosť a sú aj relatívne blízko seba).
 
 ```{r}
-qqnorm(df$hits.home, pch = 1, frame = FALSE)
+qqnorm(df$hits.home, pch = 1, frame = FALSE, main="QQ-plot atribútu hits.home")
 qqline(df$hits.home, col = "steelblue", lwd = 2)
-qqPlot(df$hits.home)
-qqnorm(df$hits.away, pch = 1, frame = FALSE)
+qqPlot(df$hits.home, main="QQ-plot atribútu hits.home")
+qqnorm(df$hits.away, pch = 1, frame = FALSE, main="QQ-plot atribútu hits.away")
 qqline(df$hits.away, col = "steelblue", lwd = 2)
-qqPlot(df$hits.away)
+qqPlot(df$hits.away, main="QQ-plot atribútu hits.away")
 ```
 Z grafov môžeme vidieť, že hodnoty sa približujú normálnemu rozdeleniu, ale pri vyšších hodnotách sú odchylky vyššie. Môžeme analyzovať tieto hodnoty a skúsiť ich normalizovať.
 
 ```{r}
-plot(density(na.omit(df$hits.home)))
-plotNormalDensity(df$hits.home)
-plot(density(na.omit(df$hits.away)))
-plotNormalDensity(df$hits.away)
+plot(density(na.omit(df$hits.home)), main="Graf hustoty atribútu hits.home")
+plotNormalDensity(df$hits.home, main="Graf hustoty atribútu hits.home")
+plot(density(na.omit(df$hits.away)), main="Graf hustoty atribútu hits.away")
+plotNormalDensity(df$hits.away, main="Graf hustoty atribútu hits.away")
 ```
 Rozdelenie hodnôt veľmi pripomína normálne rozdelenie, pričom je voči krivke posunuté. Pre tento atribút bude potrebné spraviť test normality, aby sme si boli istý o aké rozdelenie sa jedná.
 
 ```{r}
-plot(df$hits.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
-plot(df$hits.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+plot(df$hits.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu hits.home")
+plot(df$hits.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu hits.away")
 ```
 Z grafu hustoty vidíme, že hodnoty sú rozmanité, čo logicky sedí k zápasom NHL. No taktiež vidíme, že niektoré hodnoty sú veľmi riedke, hlavne najväčšie hodnoty a najmenšie. 
  
 ### Atribúty pim.home a pim.away
-**charakteristika:** atribút hovorí o počte trestných minút pre jednotlivé tímy. Keďže sú najčastejšie vylúčenia sankciované dvoma minútami, tak sa budú párne hodnoty vyskytovať častejšie. No poznáme aj dlhšie tresty ako 2+2, 5, 5+2, alebo aj netradičné tresty. Vylúčenia do konca zápasu za nešportové správanie sa do tejto štatistiky nezarátavajú.
+**charakteristika:** atribút hovorí o počte trestných minút pre jednotlivé tímy. Keďže sú najčastejšie vylúčenia sankciované dvoma minútami, tak sa budú párne hodnoty vyskytovať častejšie. No poznáme aj dlhšie tresty ako 2+2, 5, 5+2, alebo aj netradičné tresty. Vylúčenia do konca zápasu za nešportové správanie sa do tejto štatistiky nezarátavajú - jedná sa teda o reálnu minutáž, ktorú strávi hráč na trestnej lavici a jeho tím je tým pádom oslabený (osobné tresty neoslabujú tím počas celej dĺžky trestu).
 
 ```{r}
 summary(df$pim.home)
 summary(df$pim.away)
 ```
-Zo zhodnotenia vidíme, že hodnoty sú priateľné a dávajú logicky zmysel, ale maximálne hodnoty sú veľmi vychýlené a záznamy majú chýbajúcu hodnotu pre tento atribút. 
+Zo zhodnotenia vidíme, že hodnoty sú priateľné a dávajú logicky zmysel, ale maximálne hodnoty sú veľmi vychýlené a záznamy majú chýbajúcu hodnotu pre tento atribút.  Tatkiež sa vyskytujú už známe chýbajúce 4 hodnoty (NA).
 
 ```{r}
-hist(df$pim.home)
-hist(df$pim.away)
+hist(df$pim.home, xlab="Home pim", main="Histogram trestných minút domáceho tímu")
+hist(df$pim.away,  xlab="Away pim", main="Histogram trestných minút hosťujúceho tímu")
 ```
 Podľa grafu neobsahuje atribút normálne rozdelenie. Hodnoty skôr pripomínajú long-tail rozdelenie.
 
 ```{r}
-boxplot(df$pim.home)
-boxplot(df$pim.away)
+boxplot(df$pim.home, ylab="Home pim", main="Krabicový graf trestných minút domáceho tímu")
+boxplot(df$pim.away, ylab="Away pim", main="Krabicový graf trestných minút hosťujúceho tímu")
 ```
-Krabicový graf nám iba potvrdil, že atribút obsahuje viacero vychýlených hodnôt, na ktoré sa budeme musieť pozrieť a navrhnúť možnú úpravu.
+Krabicový graf nám iba potvrdil, že atribút obsahuje viacero vychýlených hodnôt, na ktoré sa budeme musieť pozrieť a navrhnúť možnú úpravu. Predbežne odporúčame normalizáciu atribútov pokiaľ sú väčšie rovné ako 60, no túto skutočnosť ešte overíme neskôr na grafe rozptylu.
 
 ```{r}
-qqnorm(df$pim.home, pch = 1, frame = FALSE)
+qqnorm(df$pim.home, pch = 1, frame = FALSE, main="QQ-plot atribútu pim.home")
 qqline(df$pim.home, col = "steelblue", lwd = 2)
-qqPlot(df$pim.home)
-qqnorm(df$pim.away, pch = 1, frame = FALSE)
+qqPlot(df$pim.home, main="QQ-plot atribútu pim.home")
+qqnorm(df$pim.away, pch = 1, frame = FALSE, main="QQ-plot atribútu pim.away")
 qqline(df$pim.away, col = "steelblue", lwd = 2)
-qqPlot(df$pim.away)
+qqPlot(df$pim.away, main="QQ-plot atribútu pim.away")
 ```
-Q-Q grafy nám dokázali, že sa nejedná o normálne rozdelenie a hodnoty sa mu ani nepribližujú.
+Q-Q grafy nám dokázali, že sa nejedná o normálne rozdelenie a hodnoty sa mu ani nepribližujú. Test normality teda nebude potrebný.
 
 
 ```{r}
-plot(density(na.omit(df$pim.home)))
-plotNormalDensity(df$pim.home)
-plot(density(na.omit(df$pim.away)))
-plotNormalDensity(df$pim.away)
-plot(df$pim.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
-plot(df$pim.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
+plot(density(na.omit(df$pim.home)), main="Graf hustoty atribútu pim.home")
+plotNormalDensity(df$pim.home, main="Graf hustoty atribútu pim.home")
+plot(density(na.omit(df$pim.away)), main="Graf hustoty atribútu pim.away")
+plotNormalDensity(df$pim.away, main="Graf hustoty atribútu pim.away")
 ```
-Atribút má veľmi nezvyčajú hustotu rozdelenia hodnôt, čo je zapríčinené hlavne z dvôdou dvojminutových trestov.
+
+Atribúty majú veľmi nezvyčajú hustotu rozdelenia hodnôt, čo je zapríčinené hlavne z dvôdou dvojminutových trestov. Hustota nepripomína normálne rozdelenie v podstate na žiadnom intervale, čize o normálne rozdelenie sa na základe grafov konať určite nebude.
+
+```{r}
+plot(df$pim.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu pim.home")
+plot(df$pim.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu pim.away")
+```
+
+Graf rozptylu dokazuje teóriu, že počty trestných minút sú naozaj riedke pri hodnotách väčších ako 40. 40 minút však ešte možno považovať na "normálne" hodnoty, no 60+ sú už naozaj extrémne. Z riedkosti grafu pre oba atribúty pri y>= 60 vieme povedať, že hodnoty sú extrémne a môžeme ich znormalizovať napr. nahradením za horný kvantil (75%).
+
+Zhrnutie: atribúty **pim.home** a **pim.away** sú spojité atribúty, ktoré pochádzajú z iného ako normálneho rozdelenia (podobné normálnemu no asymetrické). Obsahujú pomerne veľa vychýlených hodnôt najma pre hodnotu atribútov >= 60, preto bude vhodné ich normalizovať vo fáze čistenia dát. Pravdepodobne sa jednalo o vyhrotené zápasy, kedy bolo rozdaných naozaj veľa trestov. Takéto zápasy síce sú reálne, no taktiež sú veľmi zriedkavé a hrozí, že by mohli negatívne skresliť niektoré výsledky našej práce. JEdna hodnota v atribúte **pim.away** dokonca obsahuje jednu výrazne vychýlenú hodnotu (> 80).
 
  
 ### Atribúty powerPlayOpportunities.home a powerPlayOpportunities.away
 **charakteristika:** atribút hovorí o gólových príležitostiach počas presilových hier. Tento atribút sa odvíja od počtu presilovkových minút a teda očakávame medzi nimi koreláciu.
 
 ```{r}
-boxplot(df$powerPlayOpportunities.home)
-hist(df$powerPlayOpportunities.home)
-boxplot(df$powerPlayOpportunities.away)
-hist(df$powerPlayOpportunities.away)
+cat("Základná štatistika atribútu powerPlayOpportunities.home:\n ")
+summary(df$powerPlayOpportunities.home)
+cat("\nZákladná štatistika atribútu powerPlayOpportunities.away:\n ")
+summary(df$powerPlayOpportunities.away)
 ```
-Z grafov môžeme vidieť, hodnoty atribútu pripomínajú normálne rozdelenie s malým počtom vychýlených hodnôt. 
+Opätovne máme 4 NA hodnoty, tie však už boli opisované skôr. Väčšina dát bude zhluknutých okolo hodoty 3 pri oboch atribútoch, pričom vychýlené sú až okolo 10 až 9. Minimálna hodnota 0 je úplne valídna, pravdepodobne tím nehral v zápase žiadnu presilovku.
+
+```{r}
+boxplot(df$powerPlayOpportunities.home, xlab = "powerPlayOpportunities.home", main="Histogram atribútu powerPlayOpportunities.home")
+hist(df$powerPlayOpportunities.home, ylab = "powerPlayOpportunities.home", main="Krabicový graf atribútu powerPlayOpportunities.home")
+boxplot(df$powerPlayOpportunities.away, xlab = "powerPlayOpportunities.away", main="Histogram atribútu powerPlayOpportunities.home")
+hist(df$powerPlayOpportunities.away, ylab = "powerPlayOpportunities.away", main="Krabicový graf atribútu powerPlayOpportunities.home")
+```
+Z grafov môžeme vidieť, hodnoty atribútu pripomínajú normálne rozdelenie s malým počtom vychýlených hodnôt. Tieto hodnoty nebude potrebné riešiť, keďže sú v rámci normy a tatkiež je ich veľmi malé množstvo, čize by nemali reálne skreslovať výsledky. Z hľadiska štatistiky sa pre našu prácu taktieŽ jedná o menej zaujímavý atribút, keďže na ňom neplánujeme postaviť žiadnu z pracovných hypotéz. 
  
  
 ### Atribúty powerPlayGoals.home a powerPlayGoals.away
