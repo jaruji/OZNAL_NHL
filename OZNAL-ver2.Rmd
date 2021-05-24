@@ -19,9 +19,10 @@ library(car)
 ```
 
 ## Dáta
+V tejto sekcii bude opísaný základný zdroj dát + postup, akým sme získali náš unikátny dataset - bolo potrebné vykonať viacero krokov, ktoré zahŕňali spájanie viacerých datasetov, elimináciu niektorých atribútov, deduplikáciu a na záver vytváranie úplne nových relevantných atribútov na základe hodnôt niektorých atribútov pôvodného datasetu.
 
 ### Tabuľka game
-Tabuľka obsahuje základné dáta jednotlivých zápasov. Neobsahuje však detailné informácie o tímoch alebo tímových štatistikách konkrétneho zápasu. Dokážeme však pomocou atribútov game_id, away_team_id a home_team_id namapovať iné tabuľky tak, aby sme dostali jeden dataset so všetkými hodnotami.
+Tabuľka obsahuje základné dáta jednotlivých zápasov. Neobsahuje však detailné informácie o tímoch alebo tímových štatistikách konkrétneho zápasu. Taktiež neobsahuje čitateľné identifikátory tímov (t.j. ich názvy, obsahuje iba ID) Pomocou atribútov game_id, away_team_id a home_team_id však dokážeme namapovať iné tabuľky tak, aby sme dostali jeden dataset so všetkými pre nás relevantnými hodnotami.
 
 ```{r}
 #setwd(dir) 
@@ -30,26 +31,22 @@ game <- fread(path)
 head(game)
 ```
 
-Niektoré atribúty sú z pohľadu štatistiky nezaujímavé a teda ich môžeme odstrániť pred spájaním tabuliek. Napríklad údaje o časovej zóne, alebo identifikátory štadiónov a pod.
+Niektoré atribúty sú z pohľadu štatistiky nezaujímavé a teda ich môžeme odstrániť pred spájaním tabuliek. Napríklad údaje o časovej zóne, alebo identifikátory štadiónov a pododobne. Pri týchto atribútoch predpokladáme, že pre naše riešenie zaujímavé žiadnym spôsobom nebudú - samozrejme, využitie by sa určite nájsť dalo, no aj vzhľadom na predpokladaný počet atribútov nemáme potrebu tieto atribúty v datasete ponechať.
 
 ```{r}
 game <- subset(game, select=-c(venue_link,venue_time_zone_id, venue_time_zone_offset, venue_time_zone_tz))
 head(game)
 dim(game)
 ```
-
-Prvotnou analýzou sme zistili, že v minulej sezóne sa odohralo približne 2500 zápasov, z čoho bolo +-10 percent v playoff. S týmto počtom zápasov nám stačí pracovať s poslednou sezónou pri trénovaní stroja.
-
 ```{r}
 dim(game[game$season==20192020,])
 dim(subset(game, season==20192020 & type=='P'))
 ```
 
-```{r}
-#game <- game[!(outcome %like% "tbc")]
-```
+Prvotnou analýzou sme zistili, že v minulej sezóne sa odohralo približne 2500 zápasov, z čoho bolo +-10 percent (231 zápasov) v playoff. Percentuálny pomer zápasov regulárnej a vyraďovacej časti nie je vhodný pre rozdelenie na trénovací a testovací dataset (tam je odporúčaný pomer 70:30, resp. 80:20). Náš prvotný predpoklad, že môžeme dataset trénovať na regulárnej sezóne a následne testovať na zápasoch play-off teda nebude ideálny - vhodnejší bude možno prístup rozdelenia podľa sezón, kedy na zápasoch starších sezón model natrénujeme a testovať ho budeme na novšej sezóne.
 
-Počet hier v minulej sezóne bol omnoho vyšší ako je zvykom, tak sme skontrolovali existenciu duplikátnych záznamov v tabuľke. Z výpisu nižšie sme odhalili 2570 duplikátov v celej tabuľke.
+
+Počet hier v minulej sezóne bol omnoho vyšší ako je zvykom, tak sme skontrolovali existenciu duplikátnych záznamov v tabuľke. Z nasledujúceho výpisu sme odhalili 2570 duplikátov v celej tabuľke.
 
 ```{r}
 game[duplicated(game)]
@@ -92,7 +89,7 @@ length(unique(game_teams_stats$game_id))
 ```
 ### Tabuľka team_info
 
-Táto tabuľka obsahuje iba základné infromácie o tímoch, ktoré nesúvisia so sezónami a zápasmi. Je však potrebná pre doplnenie mien tímov k jednotlivým hrám.
+Táto tabuľka obsahuje iba základné infromácie o tímoch, ktoré nesúvisia so sezónami a zápasmi. Je však potrebná pre doplnenie mien tímov k jednotlivým hrám - tým spôsobom bude možné priradenie názvov tímov k záznamom a možné prípadné overenie zmysluplnosti hodnôt atribútov podľa reálnych výsledkov napr. na NHL portáli.
 
 ```{r}
 path <- ('data/team_info.csv')
@@ -100,7 +97,7 @@ team_info <- fread(path)
 head(team_info)
 ```
 
-Z tejto tabuľky nám stačí extrahovať atribúty team_id, podľa ktorého spojíme tabuľky a abbreviation, ktorý nám doplní skratky názvov tímov ku zápasom.
+Z tejto tabuľky nám stačí extrahovať atribúty team_id, podľa ktorého spojíme tabuľky a abbreviation, ktorý nám doplní skratky názvov tímov ku zápasom - plné mená tímov potrebné nie sú, ako aj franchiseID alebo link na API.
 
 ```{r}
 team_info <- subset(team_info, select=-c(franchiseId, link, shortName, teamName))
@@ -109,7 +106,7 @@ dim(team_info)
 ```
 
 ### Spájanie tabuliek
-
+V tejto sekcii vykonáme spojenie predom opisovanej trojice tabuliek, resp. troch datasetov do jedného, finálneho datasetu. Ten bude základom pre náš projekt, pričom na ňom budeme vykonávať EDA, MEDA, štatistické učenie, dokazovanie hypotéz a podobne.
 
 
 ```{r}
@@ -117,10 +114,13 @@ game_teams_stats <- left_join(game_teams_stats, team_info, "team_id")
 head(game_teams_stats)
 dim(game_teams_stats)
 ```
-
+Unikátny počet ID tímov v datasete je 37 (výpis nižšie)
 ```{r}
 length(unique(game_teams_stats$team_id))
 ```
+Reálny počet tímov v NHL je však 31, čiže dataset obsahuje tímy navyše - táto skutočnosť je jednoducho vysvetliteľná, keďže dataset obsahuje zápasy od sezóny 2000, v ktorej hrávali tímy ktoré v dnešnej dobe už neexistujú (napr. Atlanta Trashers). Nápodobne, niektoré dnešné tímy v minulosti ešte neexistovali (napr. Las Vegas Golden Knights).
+
+
 
 ```{r}
 df_h <- game_teams_stats[(game_teams_stats$HoA == 'home'),]
@@ -171,6 +171,7 @@ dim(subset(df, season==20162017 & type=='P'))
 glimpse(df)
 ```
 
+Následne môžeme zo spojených datasetov odstrániť nepodstatné atribúty (atribútov je aj tak veľké množstvo, čize odstránenie nie dôležitých atribútov nám uľahčí prácu s datasetom). Taktiež si vytvoríme nový atribút reprezentujúci percentuálnu úspešnost zákrokov domáceho a hosťujúceho brankára, ktorú získame ako podiel striel na bránu - počet gólov vydelené celkovým počtom striel na bránu).
 
 ```{r}
 df <- subset(df, select=-c(game_id, date_time_GMT, outcome, home_rink_side_start, venue, away_team_id, home_team_id, settled_in.away, HoA.away, HoA.home))
@@ -218,7 +219,7 @@ Z grafu môžeme vidieť, že dataset obsahuje 5 zvolených sezón. Rozdelenie p
 
 * R - regular, označuje regulárne zápasy ktoré sa hrajú počas NHL sezóny
 * P - playoff, označuje zápasy vyraďovacej časti NHL, hrajú sa na konci sezóny. Tejto časti sa zúčastňujú iba najlepšie tímy.
-* A - ?
+* A - ?, predpokladáme že exhibičné zápasy
 ```{r}
 cat("Unikátne hodnoty: \n")
 unique(df$type)
@@ -242,7 +243,7 @@ subset(df, type=='A')
 **charakteristika:** atribút reprezentuje počet gólov z pohľadu domáceho a hosťovského tímu.
 
 Nejedná sa o spojitý atribút - počet gólov môže nadobúdať iba celé hodnoty, jedná sa teda o diskrétny atribút.
-Už z podstaty atribútov goals.gome a goals.away vieme povedať, že sa nebude jednať o normálne rozdelenie, ale o distribúciu naklonenú vpravo (skewed right)  - toto vieme poznamenať ešte pred vizualizáciou prostredníctvom histogramov. Taktiež bude pravdepodobne obsahovať vychýlené hodnoty, keďže sa zvyknú vyskytovať zápasy s nadmerným počtom gólov. Reálny priemer sa však zvykne pohybovať okolo hodnoty 2 góly pre tím - predpokladáme, že v datasete tomu tak bude tiež. Na začiatku si teda oba atribúty vizualizujeme prostredníctvom krabicových grafov a histogramov, aby sme mohli overiť naše iniciálne predpoklady.
+Už z podstaty atribútov **goals.gome** a **goals.away** vieme povedať, že sa nebude jednať o normálne rozdelenie, ale o distribúciu naklonenú vpravo (skewed right)  - toto vieme poznamenať ešte pred vizualizáciou prostredníctvom histogramov. Taktiež bude pravdepodobne obsahovať vychýlené hodnoty, keďže sa zvyknú vyskytovať zápasy s nadmerným počtom gólov. Reálny priemer sa však zvykne pohybovať okolo hodnoty 2 góly pre tím - predpokladáme, že v datasete tomu tak bude tiež. Na začiatku si teda oba atribúty vizualizujeme prostredníctvom krabicových grafov a histogramov, aby sme mohli overiť naše iniciálne predpoklady.
 
 ```{r}
 cat("Základná štatistika pre goals.home", "\n")
@@ -255,8 +256,10 @@ Zo základnej štatistiky vieme povedať, že hodnoty sú koncentrované okolo p
 ```{r}
 boxplot(df$goals.home, ylab="Home goals", xlab="", main="Krabicový graf gólov domáceho tímu")
 hist(df$goals.home, xlab="Home goals", main="Histogram výskytov gólov domáceho tímu")
+abline(v = c(mean(df$goals.home),  median(df$goals.home)), col=c("green", "blue"), lty=c(2,3), lwd=c(3,3))
 boxplot(df$goals.away, ylab="Away goals", xlab="", main="Krabicový graf gólov hosťujúceho tímu")
 hist(df$goals.away, xlab="Away goals", main="Histogram výskytov gólov hosťujúceho tímu")
+abline(v = c(mean(df$goals.home),  median(df$goals.home)), col=c("green", "blue"), lty=c(2,3), lwd=c(3,3))
 ```
 Dodatočne ešte overíme, či neexistujú chýbajúce hodnoty týchto atribútov v niektorých záznamoch:
 ```{r}
@@ -284,16 +287,16 @@ Z výpisov vidíme, že počet zápasov v ktorých domáci tím strelil 8 a viac
 
 V analýze atribútu budeme pokračovat prostredníctvom QQplotu, ktorý zobrazuje odchylku od teoretického normálneho rozdelenia.
 ```{r}
-qqnorm(df$goals.home)
-qqline(df$goals.home, col = "red", lwd = 2, main="Q-Q Plot atribútu goals.home")
+qqnorm(df$goals.home, main="Q-Q Plot atribútu goals.home")
+qqline(df$goals.home, col = "red", lwd = 2)
 ```
 ```{r}
-qqnorm(df$goals.away)
-qqline(df$goals.away, col = "red", lwd = 2, main="Q-Q Plot atribútu goals.away")
+qqnorm(df$goals.away, main="Q-Q Plot atribútu goals.away")
+qqline(df$goals.away, col = "red", lwd = 2)
 ```
 
 
-Ako už bolo spomínane v úvode analýzy týchto atribútov, nejedná sa o spojité hodnoty - táto skutočnost je viditeľná aj na grafe, kedy hodnoty atribútu goals.home nie sú spojité - toto správanie je očakávané, keďže počty gólov musia byť celé čisla. Z grafov môžeme vidieť, že počet gólov sa vychyľuje od teoretického normálneho rozdelenia.
+Ako už bolo spomínane v úvode analýzy týchto atribútov, nejedná sa o spojité hodnoty - táto skutočnost je viditeľná aj na grafe, kedy hodnoty atribútu **goals.home** nie sú spojité - toto správanie je očakávané, keďže počty gólov musia byť celé čisla. Z grafov môžeme vidieť, že počet gólov sa vychyľuje od teoretického normálneho rozdelenia.
 
 
 ```{r}
@@ -304,7 +307,7 @@ plotNormalDensity(df$goals.home, main = "Diagram hustoty atribútu goals.home")
 ```{r}
 plotNormalDensity(df$goals.away, main = "Diagram hustoty atribútu goals.away")
 ```
-Z oboch diagramov hustoty môžeme vidieť už predom spomínaný fakt - atribúty goals.home a goals.away nepochádzajú z normálneho rozdelenia - výrazne vychýlené od krivky hustoty normálneho rozdelenia sú najmä hodnoty v intervale od (1-5 gólov) na x-ovej osi. Kostrbatosť grafu spôsobuje fakt, že dáta nie sú spojité.
+Z oboch diagramov hustoty môžeme vidieť už predom spomínaný fakt - atribúty **goals.home** a **goals.away** nepochádzajú z normálneho rozdelenia - výrazne vychýlené od krivky hustoty normálneho rozdelenia sú najmä hodnoty v intervale od (1-5 gólov) na x-ovej osi. Kostrbatosť grafu spôsobuje fakt, že dáta nie sú spojité.
 
 ```{r}
 plot(x=df$goals.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE,main = "Diagram rozptýlenia atribútu goals.home")
@@ -313,9 +316,15 @@ plot(x=df$goals.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, fram
 ```{r}
 plot(df$goals.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main = "Diagram rozptýlenia atribútu goals.away")
 ```
-Z grafov rozptýlenia vidieť, že podobne ako bolo viditeľné ak v krabicovom grafe, vychýlené hodnoty sú pri počte gólov >=8 - vychýlenosť idnikuje menšia hustota záznamov nadobúdajúcich hodnoty atribútov goals.home a goals.away >= 8 (na grafe viditeľné ako pomerne výrazný pokles "bodiek"). Ako už však bolo spomínané, odstránenie alebo úprava týchto hodnôt by so sebou niesla riziko straty dôležitých informácií - preto bude vhodné tieto hodnoty ponechať, keďže sa jedná o reálne údaje. Z grafu nie je príliš dobre vidieť, pre aký počet gólov je najväčšia koncentrácia záznamov (príliš veľa záznamov spôsobuje nízku čitateľnosť grafu) - už z krabicového grafu však vieme, že najvyššia koncentrácia je v rozmedzí 2-4 gólov, čiže táto informácia už nie je kľúčová.
+Z grafov rozptýlenia vidieť, že podobne ako bolo viditeľné ak v krabicovom grafe, vychýlené hodnoty sú pri počte gólov >=8 - vychýlenosť idnikuje menšia hustota záznamov nadobúdajúcich hodnoty atribútov **goals.home** a **goals.away** >= 8 (na grafe viditeľné ako pomerne výrazný pokles "bodiek"). Ako už však bolo spomínané, odstránenie alebo úprava týchto hodnôt by so sebou niesla riziko straty dôležitých informácií - preto bude vhodné tieto hodnoty ponechať, keďže sa jedná o reálne údaje. Z grafu nie je príliš dobre vidieť, pre aký počet gólov je najväčšia koncentrácia záznamov (príliš veľa záznamov spôsobuje nízku čitateľnosť grafu) - už z krabicového grafu však vieme, že najvyššia koncentrácia je v rozmedzí 2-4 gólov, čiže táto informácia už nie je kľúčová.
 
-**Zhrnutie**: atribúty goals.home a goals.away sú diskrétne atribúty, ktoré nepochádzajú z normálneho rozdelenia (viditeľné na histogramoch, QQ-plotoch a grafoch hustoty), ich distribúcia je podľa očakávaní naklonená vpravo. Z grafov rozptýlenia a krabicových grafov vidieť, že za vychýlené hodnoty možno pri oboch atribútoch považovať počty gólov väčšie rovné ako 8 - z dôvodu významnosti tejto informácie však tieto hodnoty neplánujeme nijako upravovať. Oba atribúty možno z hľadiska plánovaných hypotéz považovať za kľúčové.
+
+```{r}
+#TU NEJAKY GRAF ESTE
+```
+
+
+**Zhrnutie**: atribúty **goals.home** a **goals.away** sú diskrétne atribúty, ktoré nepochádzajú z normálneho rozdelenia (viditeľné na histogramoch, QQ-plotoch a grafoch hustoty), ich distribúcia je podľa očakávaní naklonená vpravo. Z grafov rozptýlenia a krabicových grafov vidieť, že za vychýlené hodnoty možno pri oboch atribútoch považovať počty gólov väčšie rovné ako 8 - z dôvodu významnosti tejto informácie však tieto hodnoty neplánujeme nijako upravovať. Oba atribúty možno z hľadiska plánovaných hypotéz považovať za kľúčové.
 
 ### Atribúty team_id.home a team_id.away
 **charakteristika:** Identifikačné číslo NHL tímu v rámci datasetu.
@@ -335,12 +344,10 @@ Zistili sme, že v datasete je viac ako 31 tímov. Taktiež z grafov môžeme vi
 ```{r}
 df[df$team_id.away >= 55]
 ```
-Z výpisu môžeme vidieť, že tímy s nízkym počtom zápasov sú exhibičné tímy, ktoré sme úvadzali vyššie - nejedná sa o tímy NHL.
+Z výpisu môžeme vidieť, že tímy s nízkym počtom zápasov sú exhibičné tímy, ktoré sme úvadzali vyššie - nejedná sa o tímy NHL. Tieto záznamy teda bude potrebné odstrániť.
 
 ### Atribúty won.home a won.away
-**charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE alebo FALSE TRUE. Môže však nastať aj situácia v ktorej majú oba hodnotu FALSE.
-
-Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa vŠak v datasete nachádza 642x - jedná sa o remízy - tie boli v NHL zrušené, skontrolovať si to môžeme vypísaním unikátnych sezón v týchto 642 prípadoch.
+**charakteristika:** jedná sa o boolean atribúty, vyjadrujú ktorý tím v zápase zvíťazil. V drtivej väčšine prípadov sú opačné, t.j TRUE FALSE alebo FALSE TRUE. Môže však nastať aj situácia v ktorej majú oba hodnotu FALSE - keďže remízy v týchto sezónach neboli povolené, tieto hodnoty by sa reálne v datasete vyskytovať pri legitímnych záznamoch nemali.
 
 ```{r}
 unique(df$won.home)
@@ -349,8 +356,8 @@ subset(df, won.home==TRUE & won.away==TRUE)
 subset(df, won.home==FALSE & won.away==FALSE)
 verify <- subset(df, won.home==FALSE & won.away==FALSE)
 ```
- 
- Z výpisu môžeme vidieť, že remízy boli naposledy v sezóne 2017/2018.
+
+Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa vŠak v datasete nachádza 14x - po pohľade na dáta vieme povedať, že sa nebude jednať o remízy - pre záznamy chýbajú dáta, pravdepodobne sa bude jednať o odložené alebo zrušené zápasy. Žiaden z týchto zápasov však pre naše riešenie nemá pridanú hodnotu - keďže chýbajú všetky relevantné štatistické atribúty (resp. ich hodnota je 0), tieto zápasy môžeme úplne bez problémov z datasetu pri čistení odstrániť - nestratíme totižto žiadnu štatisticky cennú informáciu.
 
 ```{r}
 unique(verify$season)
@@ -362,24 +369,110 @@ table(is.na(df$won.home))
 table(is.na(df$won.away))
 ```
 
-Atribúty won.home a won.away neobsahujú žiadne prázdne hodnoty, preto nie je potrebné volenie stratégie ich nahrádzania.
+Atribúty won.home a won.away neobsahujú žiadne prázdne hodnoty, preto nie je potrebné voliť stratégie ich nahrádzania.
 
 ### Atribúty shots.home a shots.away
 **charakteristika:** atribút reprezentuje počet striel na bránu z pohľadu domáceho a hosťovského tímu.
 
+Pri atribútoch overíme, či neobsahujú chýbajúce hodnoty:
 ```{r}
-boxplot(df$shots.home)
-hist(df$shots.home)
-boxplot(df$shots.away)
-hist(df$shots.away)
+cat("Počet záznamov kde je shots.home NA", nrow(subset(df, is.na(shots.home)==TRUE)), '\n')
+cat("Počet záznamov kde je shots.away NA",nrow(subset(df, is.na(shots.away)==TRUE)),'\n')
+```
+Vidíme, že v štyroch záznamoch nadobúdajú atribúty shots.home a shots.away hodnotu NA. Na tieto záznamy sa môžeme bližšie pozrieť.
+
+```{r}
+subset(df, is.na(shots.home)==TRUE)
+subset(df, is.na(shots.away)==TRUE)
+```
+Z výpisu vidíme, že v oboch prípadoch sa jedná o zápasy play-off medzi tímami NHL, ktoré vŠak neobsahujú žiade štatistické informácie (takmer všetko je NA) - tieto záznamy bude vhodné odstrániť, keďže neobsahujú žiadne relevantné informácie, pravdepodobne sa jedná o zrušené zápasy v play-off. Taktiež je vhodné podotknúť, že tieto 4 zápasy sú rovnaké pre oba atribúty, t.j. po ich odstránení budú odstránené NA hodnoty pre oba atribúty - bude riešené vo fázi čistenia dát.
+
+
+```{r}
+boxplot(df$shots.home, ylab="Home shots", xlab="", main="Krabicový graf striel na bránu domáceho tímu")
+hist(df$shots.home, xlab="Home shots", main="Histogram striel na bránu domáceho tímu")
+boxplot(df$shots.away, ylab="Away shots", xlab="", main="Krabicový graf striel na bránu hosťujúceho tímu")
+hist(df$shots.away, xlab="Away shots", main="Histogram striel na bránu hosťujúceho tímu")
 ```
  
- Z histogramov možno vidieť, že atribúty shots majú normálnu distribúciu.
+ Z histogramov možno vidieť, že distribúcia atribútov shots.home a shots.away pripomína normálnu distribúciu. Taktiež možno sledovať odlahľú hodnotu - konkrétne počet striel 0. Ako sme už zistili, jedná sa o chýbajúce záznamy, ktoré budú neskôr odstránené. Predpokladáme teda, že táto odľahlá hodnota bude po fáze čistenia dát eliminovaná. Ohľadom hodnôt atribútov vieme povedať, že aj pri **shots.home** aj **shots.away** nadobúdajú atribúty veľmi podobné hodnoty - najväčšia koncentrácia záznamov je okolo 30 striel. Pri prvom pohľade na histogram však vyzerá, že hosťujúce tímy mávajú v priemere o niečo málo viac striel na bránu ako domáce, čo je zaujímavé, keďže domáce tímy mávajú priemerne viac gólov na zápas (ako bolo opísané v analýze atribútov **goals.home** a **goals.away**).
+ 
+Pri krabicových grafoch je zaujímavý najmä atribút **shots.home** - konkrétne pomerne výrazne odľahlá hodnota okolo 80 striel na bránu
+(najbližšia druhá je okolo 60 striel). Pri atribúte **shots.away** - sú všetky "odľahlé" hodnoty združené okolo hodnoty 60 striel. Počet 80+ striel teda na prvý pohľad pôsobí podozrivo - tento záznam si vypíšeme aby sme zistili, či sa môže jednať o chybu merania. Odľahlá hodnota je taktiež hodnota 0, dôvod jej výskytu + postup riešenia sme však už riešili pri opise histogramu.
+
 ```{r}
-table(is.na(df$shots.home))
-table(is.na(df$shots.away))
+subset(df, df$shots.home >= 80)
 ```
-Keď sa bližsie pozrieme na výsledok funkcie is.na(), môžeme vidieť, že oba atribúty shots (home aj away) obsahujú prázdne hodnoty v 4 záznamoch. Tie je potrebné v rámci čistenia dát odstrániť, resp. nahradiť. Vhodnou metódou môže byť napr. nahradenie priemernou hodnotou striel na bránu z ostatných zápasov tímu v sezóne.
+Z výpisu záznamu vidíme, že sa jedná o zápas play-off medzi Columbus Blue Jackets a Tamba Bay Lightning, kedy bol počet striel na jednej strane 88 a na druhej 63. Zápas bol taktiež ukončený v predĺžení - keďže v play-off je možný nekonečný počet predĺžení až pokiaľ nie je jasný výsledok zápasu (remíza vo vyraďovacích zápasoch nie je povolená) môžeme predpokladať, že sa jedná o zápas ktorý bol predĺžovaný viac krát. Počty striel sú teda legitímne a nejedná sa o chyby merania. Jedná sa však o veľmi unikátnu situáciu, ktorá môže potenciálne negatívne ovplyvniť výsledky predikčného modelu. Z tohoto dôvôdu je vhodné uvažovať nad normovaním tejto hodnoty.
+
+
+```{r}
+qqnorm(df$shots.home, main="Q-Q Plot atribútu shots.home")
+qqline(df$shots.home, col = "red", lwd = 2)
+```
+Z QQ-plotu atribútu **shots.home** môžeme vidieť, že sa pomerne pekne drží teoretickej krivky normálneho rozdelenia. Síce sa jedná o diskrétnu celočíselnú hodnotu, graf nie je taký kostrbatý ako pri atribútoch **goals.home** a **goals.away** - je tomu tak preto, že atribút shots dosahuje širší interval hodnôt a tým pádom na grafe skoky medzi hodnotami nie je vidieť. Okolo počtu gólov 3 sa začína rozdelenie mierne odchylovať od krivky normálneho rozdelenia. Za zmienku stoja aj vychýlené hodnoty v 0 (už opísané aj zdôvodnené) a výrazne vychýlená hodnota 80 - jedná sa o reálnu hodnotu, no nad jej normalizáciou budeme uvažovať keďže situáciu, v ktorej hodnota bola nadobudnutá je možno považovať za extremálnu.
+
+```{r}
+qqnorm(df$shots.away, main="Q-Q Plot atribútu shots.away")
+qqline(df$shots.away, col = "red", lwd = 2)
+```
+Pri QQ-plote atribútu **shots.away** vieme poznamenať v podstate to isté ako pri atribúte **shots.home**. Rozdielom však je pomerne prudšie vychýlenie od teoretickej krivky normálneho rozdelenia pre pri počte striel väčšom rovnom ako 40. Výrazne vychýlená hodnota ako v predošlom grafe tu však nie je, všetky nadobúdajú hodnoty okolo 60 (bolo viditeľné už z krabicového grafu). Vyzerá to však tak, že distribúcia normálna nebude a bude potrebná normalizácia atribútu tak, aby sme normálne rozdelenie dosiahli.
+
+```{r}
+plotNormalDensity(df$shots.home, main = "Diagram hustoty atribútu shots.home")
+```
+
+```{r}
+plotNormalDensity(df$shots.away, main = "Diagram hustoty atribútu shots.away")
+```
+Grafy hustoty indikujú takmer ideálnu hustotu atribútov **shots.home** a **shots.away** - vyzerá to tak, že atribúty budú mať normálnu distribúciu. Z predošlých grafov však máme dôvod o tejto skutočnosti pochybovať, bude teda pravdepodobne potrebné vykonať test normality na reprezentatívnej vzorke dát o veľkosti 1000.
+
+
+```{r}
+plot(x=df$shots.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE,main = "Diagram rozptýlenia atribútu shots.home")
+```
+Diagram rozptýlenia atribútu **shots.home** indikuje primánrne zoskupenie hodnôt v intervale od 20-40 striel na bránu, rovnako ako krabicový graf. Opätovne môžeme vidieť extrémnu vychýlenosť hodnoty 88 striel na bránu. Hodnoty 0 sú chýbajúce záznamy, vyjadrovať sa k nim teda nie je potrebné.
+
+```{r}
+plot(x=df$shots.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE,main = "Diagram rozptýlenia atribútu shots.away")
+```
+Diagram rozptýlenia atribútu **shots.away** indikuje opäť primárne zoskupenie hodnôt v intervale od 20-40 striel na bránu, rovnako ako predošlý graf rozptýlenia. Neexistuje extrémne vychýlená hodnota, tým pádom je os Y grafu posunutá. Údaje získané z grafov však vyzerajú v oboch atribútoch veľmi podobne. 
+
+Grafy indikujú signifikantnú podobnosť s normálnym rozdelením. Bude preto vhodné vykonať Shapiro-Wilkov test normality, pre ktorý je potrebné vybrať reprezentatívnu vzorku o veľkosti 1000.
+```{r}
+sample <- sample_n(df, 1000)
+hist(sample$shots.home, xlab="Home shots", main="Histogram reprezentatívnej vzorky striel na bránu hosťujúceho tímu")
+hist(sample$shots.away, xlab="Away shots", main="Histogram reprezentatívnej vzorky striel na bránu hosťujúceho tímu")
+cat("Štatistika shots.home\n")
+summary(df$shots.home)
+cat("Štatistika vzorky shots.home\n")
+summary(sample$shots.home)
+cat("Štatistika shots.away\n")
+summary(df$shots.away)
+cat("Štatistika vzorky shots.away\n")
+summary(sample$shots.away)
+```
+Zo základnej deskriptívnej štatistiky možno vidieť veľmi podobnú varianciu hodnôt vo vzorkách (dolný-horný kvantil, priemer a medián), preto ich považujeme za reprezentatívne (aj keď neobsahujú všetky extremálne hodnoty).
+
+Následne vykonáme už predom spomínaný Shapiro-Wilkov test normality s hladinou p = 0.05.
+
+Test normality atribútu **shots.home**:
+nulová hypotéza: dáta pochádzajú z normálneho rozdelenia
+```{r}
+shapiro.test(sample$shots.home)
+```
+Keďže p < 0.05, nulovú hypotézu zamietame - dáta nepochádzajú z normálneho rozdelenia
+
+Test normality atribútu **shots.away**:
+nulová hypotéza: dáta pochádzajú z normálneho rozdelenia
+```{r}
+shapiro.test(sample$shots.away)
+```
+Keďže p < 0.05, nulovú hypotézu zamietame - dáta nepochádzajú z normálneho rozdelenia.
+
+Test normality bol v pri oboch atribútoch zamietnutý, preto vieme, že ani jeden atribút nepochádza z normálneho rozdelenia - pravdepodobná je mierna asymteria distribúcií atribútov.
+
+**Zhrnutie**: atribúty **shots.home** a **shots.away** sú diskrétne atribúty, ktoré nepochádzajú z normálneho rozdelenia (dokázané Shapiro-Wilkovým testom). Hodnota **shots.home** dosahuje výrazne vychýlenú hodnotu 88, pri ktorej však bola zistená jej validita (t.j. jedná sa o valídnu hodnotu a nie chybu senzora). Túto hodnotu pravdepodobne bude vhodné normalizovať napr. pomocou horného kvantilu, keďže je naozaj extremálna. Atribúty **shots.home** a **shots.away** sú na grafov veľmi podobné, dosahujú miernu asymetriu. Vychýlené hodnoty 0 sa vyskytujú v oboch atribútoch, bolo však zistené, že sa jedná o chýbajúce záznamy (zrušené/presunuté zápasy) - tie budú vyriešené pri fáze čistenia dát.
 
 
 ### Atribúty hits.home a hits.away
@@ -425,7 +518,7 @@ plotNormalDensity(df$hits.home)
 plot(density(na.omit(df$hits.away)))
 plotNormalDensity(df$hits.away)
 ```
-Rozdelenie hodnôt veľmi pripomína normálne rozdelenie, pričom je voči krivke posunuté. PRe tento atribút bude potrebné spraviť test normality, aby sme si boli istý o aké rozdelenie sa jedná.
+Rozdelenie hodnôt veľmi pripomína normálne rozdelenie, pričom je voči krivke posunuté. Pre tento atribút bude potrebné spraviť test normality, aby sme si boli istý o aké rozdelenie sa jedná.
 
 ```{r}
 plot(df$hits.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
@@ -626,7 +719,7 @@ Z výpisu vyššie môžeme vidieť, že všetky atribúty pomocného datasetu *
 corrplot(cor(df_numeric, use="complete.obs"), type="lower", method="color", tl.col="black")
 ```
 
-Z korelačnej matice môžeme vidieť, že najväčšia korelácia (záporná) je medzi atribútmi **won.home** a **won.away**, čo je pochopiteľné, pretože keď jeden tím vyhrá, druhý musí prehrať. Podobné záporné korelácie môžeme vidieť medzi atribútmi **faceOffWinPercentage.home** a **faceOffWinPercentage.away**, ktoré hovoria o vyhratých vhadzovaniach. Ďalšie korelácie sú medzi atribútmi:
+Z korelačnej matice môžeme vidieť, že najväčšia korelácia (záporná) je medzi atribútmi **won.home** a **won.away**, čo je pochopiteľné, pretože keď jeden tím vyhrá, druhý musí prehrať. Podobné záporné korelácie môžeme vidieť medzi atribútmi **faceOffWinPercentage.home** a **faceOffWinPercentage.away**, ktoré hovoria o vyhratých vhadzovaniach. Ďalšie korelácie sú medzi atribútmi **won.home** a **goals.home**:
 
 ```{r}
 cor(df$won.home, df$goals.home)
@@ -653,10 +746,17 @@ Trestné minúty jedného tímu znamenajú presilovku druhého tímu. Z toho tie
 cor(df$pim.home, df$powerPlayOpportunities.away, use="complete.obs")
 cor(df$pim.away, df$powerPlayOpportunities.home, use="complete.obs")
 ```
-Z vyššie uvedených korelácií medzi jednotlivými atribútmi môžeme vytvoriť určié hypotézy, ktoré budeme v ďalších fázach projektu overovať:
+Z vyššie uvedených korelácií medzi jednotlivými atribútmi môžeme vytvoriť určité pracovné hypotézy, ktoré budeme v ďalších fázach projektu overovať.
 
 ### Hypotézy
+Počas fázy prieskumnej analýzy sme si stanovili 5 pracovných hypotéz, ktoré môžu byť vzhľadom na dáta zaujímavé. Tieto hypotézy sú nasledovné:
+1. Tím, ktorý v zápase strelí viac ako 3 góly (vrátane), pravdepodobne vyhrá. 
+2. Čím je väčší súhrnný počet striel na bránu, tým viac gólov padne v zápase.
+3. Čím je v zápase viac hitov, tým je zápas ostrejší a tým pádom rozhodcovia udelia tímom súhrnne viac trestných minút.
+4. Čím má brankár vyššiu úspešnosť zákrokov, tým s väčšou pravdepodobnosťou jeho tím vyhrá.
+5. Tím, ktorý hrá v domácom prostredí strelí viac gólov v zápase ako hosťujúci tím.
 
+Vzťahy medzi atribútmi obshiahnutými v hypotézach bolo možné vidieť už pri prieskumnej analýze jednotlivých atribútov (EDA), ako aj pri párovej analýze (MEDA). Keďže závislosti existujú, predpokladáme, že väčšina hypotéz bude postavená dobre. Tieto hypotézy budú bližšie riešené vo fázi o štatistickom učení. V prvom rade však bude potrebné dáta vyčistit a upraviť takým spôsobom, aby boli použiteľné pre dodatočnú analýzu prostredníctvom metód štatistického učenia. Niektoré atribúty bude taktiež potrebné normalizovať - napr. logaritmom, odmocninou.
 
 
 ## Čistenie a úprava dát
