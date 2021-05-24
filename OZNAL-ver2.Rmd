@@ -16,6 +16,7 @@ library(lawstat)
 library(moments)
 library(forcats)
 library(car)
+library(ggpubr)
 ```
 
 ## Dáta
@@ -724,22 +725,49 @@ Z korelačnej matice môžeme vidieť, že najväčšia korelácia (záporná) j
 ```{r}
 cor(df$won.home, df$goals.home)
 ```
+```{r}
+ggplot(df, aes(x=shots.home, y=goals.home, color=won.home)) + geom_point(size=1)
+```
+
+
 Korelácia týchto dvoch atribútov je tiež logická. Môžeme z nej vyvodiť, že čím viac gólov tím strelí, tým je väčšia šanca, že zápas vyhrá. Podobne to platí aj pre atribúty **won.away** a **goals.away**:
 
 ```{r}
 cor(df$won.away, df$goals.away)
 ```
+```{r}
+ggplot(df, aes(x=shots.away, y=goals.away, color=won.away)) + geom_point(size=1)
+```
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+par(mar=c(5,5,0,3))
+hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
+
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+par(mar=c(5,5,0,3))
+hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
+```
+
 Rovnako môžeme sledovať aj koreláciu medzi atribútmi **won.away** a **goals.home** alebo **won.home** a **goals.away**. V tomto prípade však budú korelácie záporné:
 
 ```{r}
 cor(df$won.away, df$goals.home)
 cor(df$won.home, df$goals.away)
 ```
+
 Ďalšiu koreláciu môžeme pozorovať medzi atribútmi **pim.home** a **pim.away**. Atribúty hovoria o trestných minutách tímov. Určitá korelácia je pochopiteľná, pretože ak sa napríklad dvaja hráči pobijú, idú obaja na trestnú lavičku. V takomto prípade dostávajú trestné minúty oba tíma zároveň, čoho dôsledkom je zvýšená korelácia týchto atribútov. Atribúty však obsahujú N/A hodnoty, takže ich pre znázornenie korelácie budeme ignorovať.
 
 ```{r}
 cor(df$pim.home, df$pim.away, use="complete.obs")
 ```
+```{r}
+ggplot(df, aes(x=pim.home, y=pim.away)) + geom_point(size=1)
+```
+
 Trestné minúty jedného tímu znamenajú presilovku druhého tímu. Z toho tiež vyplýva korelácia medzi atribútmi **pim.home** s **powerPlayOpportunities.away** a naopak **pim.away** a **powerPlayOpportunities.home**:
 
 ```{r}
@@ -748,12 +776,19 @@ cor(df$pim.away, df$powerPlayOpportunities.home, use="complete.obs")
 ```
 Z vyššie uvedených korelácií medzi jednotlivými atribútmi môžeme vytvoriť určité pracovné hypotézy, ktoré budeme v ďalších fázach projektu overovať.
 
+Vhodné by bolo zobraziť aj úspešnosť brankárov pomocou grafov, ale nie je to zatiaľ možné, pretože atribút obsahuje aj iné/nenumerické hodnoty - NaN. Tento problém plánujeme vyriešiť pri čistení dát, po ktorom môžeme vykonať novú analýzu tohoto atribútu.
+
 ### Hypotézy
 Počas fázy prieskumnej analýzy sme si stanovili 5 pracovných hypotéz, ktoré môžu byť vzhľadom na dáta zaujímavé. Tieto hypotézy sú nasledovné:
-1. Tím, ktorý v zápase strelí viac ako 3 góly (vrátane), pravdepodobne vyhrá. 
+
+1. Tím, ktorý v zápase strelí viac ako 3 góly (vrátane), pravdepodobne vyhrá.
+
 2. Čím je väčší súhrnný počet striel na bránu, tým viac gólov padne v zápase.
+
 3. Čím je v zápase viac hitov, tým je zápas ostrejší a tým pádom rozhodcovia udelia tímom súhrnne viac trestných minút.
+
 4. Čím má brankár vyššiu úspešnosť zákrokov, tým s väčšou pravdepodobnosťou jeho tím vyhrá.
+
 5. Tím, ktorý hrá v domácom prostredí strelí viac gólov v zápase ako hosťujúci tím.
 
 Vzťahy medzi atribútmi obshiahnutými v hypotézach bolo možné vidieť už pri prieskumnej analýze jednotlivých atribútov (EDA), ako aj pri párovej analýze (MEDA). Keďže závislosti existujú, predpokladáme, že väčšina hypotéz bude postavená dobre. Tieto hypotézy budú bližšie riešené vo fázi o štatistickom učení. V prvom rade však bude potrebné dáta vyčistit a upraviť takým spôsobom, aby boli použiteľné pre dodatočnú analýzu prostredníctvom metód štatistického učenia. Niektoré atribúty bude taktiež potrebné normalizovať - napr. logaritmom, odmocninou.
@@ -835,5 +870,4 @@ df = df[!(is.na(df$shots.away))]
 cbind(lapply(lapply(df, is.na), sum))
 ```
 Ako môžeme vidieť z výpisu vyššie, po odstránení záznamov, ktoré obsahujú N/A hodnoty v atribúte **shots.away**, zmizli všetky N/A hodnoty z celého datasetu, čím sme opäť overili, že všetky N/A hodnoty pochádzali z rovnakých 4 záznamov.
-
 
