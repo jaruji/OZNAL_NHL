@@ -639,9 +639,110 @@ Hodnoty atribútu veľmi pripomínajú normálne rozdeleni, ale vidíme aj zopá
 ### Atribúty abbreviation.home a abbreviation.away
 **charakteristika:** atribút, ktoréh hodnoty obsahujú iba tri písmená a reprezentuje skratkú tímov., ktoré prosti sebe nastúpili v zápase. Pre nami vybrané sezóny bolo v NHL 31 tímov a teda má tento atribút 31 unikátnych hodnôt.
 
+Tento atribút ma iba čisto informatívny charakter, môžeme akurát overiť či sa počet skratiek tímov reálne rovná počtu tímov patriacich do súťaže NHL (čiže 31 tímov).
 
-### Atribúty settled_in.home a settled_in.away
+```{r}
+length(unique(df$abbreviation.away))
+length(unique(df$abbreviation.home))
+```
+
+Zistili sme, že v oboch atribútoch je o jednu hodnotu navyše. Pozrieme sa teda na hodnoty a skúsime nájsť vinníka.
+```{r}
+unique(df$abbreviation.away)
+```
+PHI - Philadelphia Flyers
+
+ANA - Annaheim Ducks
+
+COL - Colorado Avalanche
+
+WPG - Winnipeg Jets
+
+CGY - Calgary Flames
+
+WSH - Washington Capitals
+
+TOR - Toronto Maple Leafs
+
+VAN - Vancouver Canucks
+
+CBJ - Columbus Blue Jackets
+
+EDM - Edmonton Oilers
+
+NYI - New York Islanders
+
+CHI - Chicago Blackhawks
+
+PIT - Pittsburg Penguins
+
+TBL - Tamba Bay Lightning
+
+BOS - Boston Bruins
+
+NJD - New Jersey Devils
+
+OTT - Ottawa Senators
+
+MTL - Montreal Canadiens
+
+LAK - Los Angeles Kings
+
+FLA - Florida Panthers
+
+CAR - Carolina Hurricanes
+
+SJS - San Jose Sharks
+
+MIN - Minnesota Wild
+
+NYR - New York Rangers
+
+DAL - Dallas Stars
+
+DET - Detroit Red Wings
+
+BUF - Buffalo Sabres
+
+ARI - Arizone Coyotes
+
+STL - Saint Louis Blues
+
+NSH - Nashville Predators
+
+VGK - Las Vegas Golden Knights
+
+NA - hodnota ktorú nadobúda abbreviation pri type A - zápasy mimo NHL
+
+Všetky hodnoty boli popísané a taktiež bol vysvetlený o jeden väčší počet - ten bude pri čistení dát odstránený. Tento atribút však z hľadiska štatistiky neprináša žiadnu dodatočnú hodnotu, slúži iba na priradenie zápasov k reálnym názvom tímov dodatočne ako k iba im ID-čkam.
+
+### Atribúty settled_in
 **charakteristika:** atribút, ktorý ukazuje ako skončil zápas. V NHL môže zápas skončiť viacerými spôsobmi: v riadnom hracom čase, v predĺžení, po nájazdoch (v starších sezónach), alebo z netradičných dôvodov (roztopenie ľadu, výpadok elektrického prúsu, ...).
+
+
+```{r}
+unique(df$settled_in)
+```
+Tento atribút nadobúda 3 hodnoty - REG, OT a tbc. 
+REG - rozhodnutý zápas v riadnom hraciom čase
+OT - zápas rozhodnutý v predĺžení
+tbc - pravdepodobne zrušený zápas
+
+Keďže si niesme istý, čo reprezentuje hodnota atribútu "tbc", vypíŠeme si záznamy ktoré ju obsahujú.
+
+```{r}
+subset(df, settled_in=='tbc')
+```
+V drtivej väčšine prípadov sa jedná o zrušené zápasy - vyskytujú sa tu však aj zápasy, ktorých štatistiky nadobúdajú hodnoty odlišné od 0 - vo všetkých prípadoch majú tieto zápasy však type = A, čo sme už v predošlej analýze atribútu type usúdili, že sa nejedná o valídne NHL zápasy a preto budú z datasetu pri čistení odstránené. Vieme povedať, že všetky zápasy ktoré nadobúdajú hodnotu tbc budú teda odstránené - ani jeden totižto neprináša pridanú hodnotu (0-vé hodnoty relevantných štatistík alebo zápasy mimo súťaže NHL).
+
+```{r}
+barplot(prop.table(table(df$settled_in)), las=2, cex.names=.8, col=rgb(0.2,0.4,0.6,0.6), ylab="%", xlab="settled_in", main="Percentuálne rozdelenie atribútu settled_id")
+
+```
+
+Z grafu vidíme, že cca 20% zápasov je ukončených mimo riadneho hracieho času (v predĺžení). Percentuálny pomer hodnoty tbc je zanedbateľný. Okolo 80% zápasov je tým pádom rozhodnutých v riadnom hracom čase. Pri párovej analýze môže byť dodatočne zaujímave pozrieť sa, koľko zápasov play-off sa končí v predĺžení oproti zápasom regulárnej sezóny (predpokladáme že v play-off bývajú zápasy vyrovnanejšie a tým pádom je častejšie po riadnom hracom čase remízový stav).
+
+Keďže tento atribút reálne nadobúda iba 2 hodnoty, bude možné ho pri fáze transformácie dát konvertovať na binárny atribút - ten je jednoduchšie strojovo spracovateľný a je moŽné sledovať aj závislosti s inými numerickými atribútmi napr. pomocou korelácií alebo logistickej regresie.
 
  
 ### Atribúty save_percentage.home a save_percentage.away
@@ -651,29 +752,31 @@ Hodnoty atribútu veľmi pripomínajú normálne rozdeleni, ale vidíme aj zopá
 summary(df$save_percentage.home)
 summary(df$save_percentage.away)
 ```
-Hodnoty úspešnosti brankárov sme vypočítali sami a poskytujú veľmi podobné priemerné hodnoty, ako uvádza oficiálna nHL stránka. Môžeme ale vidieť, že 14 záznamov má tento atribút nevyplnený.
+Hodnoty úspešnosti brankárov sme vypočítali sami a poskytujú veľmi podobné priemerné hodnoty, ako uvádza oficiálna nHL stránka. Môžeme ale vidieť, že 14 záznamov má tento atribút nevyplnený. Tento problém budeme riešiť pri čistení dát, prípadne následne môŽeme analýzu opätovne vykonať a pozrieť sa či sa niečo nezmení - aj keď vieme, že 14 záznamov je veľmi málo a na celkový výsledok analýzy pravdepodobne budú mať iba veľmi minimálny vplyv.
 
 ```{r}
-hist(df$save_percentage.home)
-hist(df$save_percentage.away)
+hist(df$save_percentage.home, xlab="save_percentage.home", main="Histogram úspešnosti domáceho brankára")
+abline(v = c(mean(df$save_percentage.home),  median(df$save_percentage.home)), col=c("green", "blue"), lty=c(2,3), lwd=c(3,3))
+hist(df$save_percentage.away, xlab="save_percentage.away", main="Histogram úspešnosti hosťujúceho brankára")
+abline(v = c(mean(df$save_percentage.home),  median(df$save_percentage.home)), col=c("green", "blue"), lty=c(2,3), lwd=c(3,3))
 ```
-Graf nám ukazuje, že hodnoty netvoria normálne rozdelenie. Skôr sú naklonené napravo s malým počtom vychýlených hodnôt.
+Graf nám ukazuje, že hodnoty netvoria normálne rozdelenie. Skôr sú naklonené vľavo s malým počtom vychýlených hodnôt (okolo hodnoty 0.6) - 60% úspešnosť zákrokov je síce naozaj nízka, no jedná sa o reálne hodnoty ktoré sa v NHL a celkovo pri hokeji zriedkavo vysknú.
 
 ```{r}
 boxplot(df$save_percentage.home)
 boxplot(df$save_percentage.away)
 ```
-Vychýlené hodnoty sú zo spodného kvantilu a nie je ich veľa. Môžeme sa na ne pozrieť a zhodnotiť ich úpravu.
+Vychýlené hodnoty sú zo spodného kvantilu a nie je ich veľa. Môžeme sa na ne pozrieť pri čistení dát a zhodnotiť ich úpravu, no tá bude aj vzhľadom na predošlé konštatovanie o reálnom výskyte týchto údajov veľmi nepravdepodobná - predsa len nám tieto hodnoty poskytujú dôležitú štatistickú informáciu o výkone brankárov tímov, ktorú potenciálnou úpravou nechceme stratiť.
 
 ```{r}
-qqnorm(df$save_percentage.home, pch = 1, frame = FALSE)
+qqnorm(df$save_percentage.home, pch = 1, frame = FALSE, main = "QQ-plot úspešnosti zákrokov domáceho brankára")
 qqline(df$save_percentage.home, col = "steelblue", lwd = 2)
-qqPlot(df$save_percentage.home)
-qqnorm(df$save_percentage.away, pch = 1, frame = FALSE)
+qqPlot(df$save_percentage.home, main = "QQ-plot úspešnosti zákrokov domáceho brankára")
+qqnorm(df$save_percentage.away, pch = 1, frame = FALSE,main = "QQ-plot úspešnosti zákrokov hosťujúceho brankára")
 qqline(df$save_percentage.away, col = "steelblue", lwd = 2)
-qqPlot(df$save_percentage.away)
+qqPlot(df$save_percentage.away, main = "QQ-plot úspešnosti zákrokov hosťujúceho brankára")
 ```
-Grafy nám ukazujú, že sa nejedná o normálne rozdelenie, pretože vrchné a spodné hodnoty majú vysokú odchylku.
+Grafy nám ukazujú, že sa nejedná o normálne rozdelenie, pretože vrchné a spodné hodnoty majú vysokú odchylku. Na určitom intervale síce hodnoty pripomínajú normálne rozdelenie (napr. pre **save_percentage.away** aj **save_percentage.home** interval 0.8 až cca 0.96).
 
 ```{r}
 plot(density(na.omit(df$save_percentage.home)))
@@ -687,7 +790,17 @@ Grafy hustoty s krivkou normálneho rozdelenia nám ukazujp, že hodnoty sa veľ
 plot(df$save_percentage.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
 plot(df$save_percentage.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE)
 ```
-Graf hustoty hodnôt nám ukazuje, že medzi čístými výkonmi brankárov a inkasovaným aspoň jedným gólom je veľká medzera, čo znamená, že góly padajú aj pri menšom počte striel na bránu. Taktiež v niektorých zápasoch majú brankári veľmi majú percentuálnu úspešnosť, čo môže byť spôsobené zranením pri zákroku, z ktorého padol gól.
+Graf hustoty hodnôt nám ukazuje, že medzi čístými výkonmi brankárov a inkasovaným aspoň jedným gólom je veľká medzera, čo znamená, že góly padajú aj pri menšom počte striel na bránu. Taktiež v niektorých zápasoch majú brankári veľmi majú percentuálnu úspešnosť, čo môže byť spôsobené napríklad zranením pri zákroku (alebo veľmi zlým dňom pre brankára), z ktorého padol gól. Medzera medzi 100% úspešnosťou a zvyšnými hodnotami je spôsobená aj počtom striel - pokiaľ brankár inkasuje gól a má mať percentuálnu úspešnosť veľmi blízku číslu 100, muselo by naňho v zápase byť vystrelených naozaj veľa striel - preto sa väčšinou percentuálne úspešnosti pri najlepších brankároch pohybujú "iba" okolo hodnoty 96%. 99% pravdepodobnosť je preto takmer nereálna.
+
+Test normality nebude potrebný, keďže grafy jednoznačne ukazujú, že distribúcia atribútov **save_percentage** nebude pochádzať z normálneho rozdelenie ale z rozdelenia s distribúciou naklonenou vľavo.
+
+```{r}
+skewness(df$save_percentage.home)
+skewness(df$save_percentage.away)
+```
+Šikmosť nie je možné vypočítať, keďźe atribút ešte obsahuje NA hodnoty. Tie budú odstranené pri čistení dát.
+
+Zhrnutie: Atribúty **save_percentage.home** a **save_percentage.away** sú spojité atribúty reprezentujúceho percentuálnu úspešnosť brankára (vyjadrené pomocou desatin. čísla), ktoré majú distribúciu naklonenú vĺavo.
 
  
 
@@ -799,6 +912,9 @@ Vzťahy medzi atribútmi obshiahnutými v hypotézach bolo možné vidieť už p
 V tejto kapitole sa venujeme čisteniu a úprave dát. Niektoré úpravy sme však spravili už pred analýzou. Tieto úpravy, ako napríklad deduplikáciu dát, bolo potrebné spraviť hneď na začiatku projektu, pretože sa týkali vytvárania datasetu, ktorý v projekte používame. Dataset sme vytvorili spojením 3 tabuliek. Okrem deduplikácie dát sme tiež odstránili niektoré atribúty a iné sme naopak pridali, respektíve vytvorili (ako napríklad vytvorenie atribútu úspešnosti brankára, ktorá sa počíta na základe gólov a striel oponenta).
 Cieľom tejto kapitoly je, aby všetky záznamy obsahovali údaje pre všetky atribúty. Je teda potrebné odstrániť všetky N/A hodnoty.
 Z analýzy atribútu **type** vieme, že náš dataset obsahuje výsledky niektorých zápasov, ktoré nespadajú do súťaže NHL. Pre začiatok sa pozrieme, aké atribúty obsahujú N/A hodnoty a následne odstránime dané zápasy, ktoré nepatria do NHL (takéto zápasy majú hodnotu atribútu **type** rovnú 'A').
+
+V tejto sekcii sa teda sústredíme najmä na náhradu NA hodnôt, elimináciu zbytočných záznamov (bez štatistického prínosu), normalizáciu vychýlených hodnôt identifikovaných pri prieskumnej analýze a na záver transformácii formátu niektorých atribútov (z reťazcov na numerické hodnoty) prostredníctvom tzv. one-hot encoding
+.
 Ako prvé však odstránime vychýlenú hodnotu z atribútu **shots.home**.
 
 ```{r}
