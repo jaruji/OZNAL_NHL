@@ -909,7 +909,6 @@ skewness(df$save_percentage.away)
 
 Zhrnutie: Atribúty **save_percentage.home** a **save_percentage.away** sú spojité atribúty reprezentujúceho percentuálnu úspešnosť brankára (vyjadrené pomocou desatin. čísla), ktoré majú distribúciu naklonenú vĺavo.
 
- 
 
 ## Párová analýza
 
@@ -958,19 +957,6 @@ cor(df$won.away, df$goals.away)
 ```{r}
 ggplot(df, aes(x=shots.away, y=goals.away, color=won.away)) + geom_point(size=1)
 ```
-```{r}
-par(mfrow=c(2,1))
-par(mar=c(0,5,3,3))
-hist(df$goals.home[df$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
-par(mar=c(5,5,0,3))
-hist(df$goals.home[df$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
-
-par(mfrow=c(2,1))
-par(mar=c(0,5,3,3))
-hist(df$goals.away[df$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
-par(mar=c(5,5,0,3))
-hist(df$goals.away[df$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
-```
 
 Rovnako môžeme sledovať aj koreláciu medzi atribútmi **won.away** a **goals.home** alebo **won.home** a **goals.away**. V tomto prípade však budú korelácie záporné:
 
@@ -1012,6 +998,192 @@ Počas fázy prieskumnej analýzy sme si stanovili 5 pracovných hypotéz, ktor�
 5. Tím, ktorý hrá v domácom prostredí strelí viac gólov v zápase ako hosťujúci tím.
 
 Vzťahy medzi atribútmi obshiahnutými v hypotézach bolo možné vidieť už pri prieskumnej analýze jednotlivých atribútov (EDA), ako aj pri párovej analýze (MEDA). Keďže závislosti existujú, predpokladáme, že väčšina hypotéz bude postavená dobre. Tieto hypotézy budú bližšie riešené vo fázi o štatistickom učení. V prvom rade však bude potrebné dáta vyčistit a upraviť takým spôsobom, aby boli použiteľné pre dodatočnú analýzu prostredníctvom metód štatistického učenia. Niektoré atribúty bude taktiež potrebné normalizovať - napr. logaritmom, odmocninou.
+
+#### Hypotéza 1.
+Tím, ktorý v zápase strelí viac ako 3 góly (vrátane), pravdepodobne vyhrá.
+
+Atribúty pre túto hypotézu nie sú spojité. To znamená, že nemôžeme mať polovicu góla, alebo inú desatinnú hodnotu.
+**Atribúty:** goals.home, goals.away, won.home, won.away
+
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$goals.home[df$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,1600), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+par(mar=c(5,5,0,3))
+hist(df$goals.home[df$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1600,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
+
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$goals.away[df$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,1600), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+par(mar=c(5,5,0,3))
+hist(df$goals.away[df$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1600,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
+```
+
+Z grafov môžeme vidieť, že ten zlom výhry nastáva práve pri troch góloch. Samozrejme to neznamená, že ak tím skóruje tri, alebo viac krát, tak vyhrá.
+
+```{r}
+hist(df$goals.home, xlab="goals.home", col="darkblue", main="Frekvencia počtu strelených gólov domácich")
+hist(df$goals.away, breaks = 10, xlab="goals.away", col="darkred", main="Frekvencia počtu strelených gólov hosťujúcich")
+hist(df$won.home, breaks = 2, main="Frekvencia počtu výhier domácich")
+hist(df$won.away, breaks = 2, main="Frekvencia počtu výhier hosťujúcich")
+```
+
+Z histogramov vidíme, že domáce tímy strielajú viac gólov ako hosťujúce. Taktiež hostujúce tímy najčastejšie strelia nula gólov. Vidíme aj, že tímy, ktoré hrajú doma vyhrávajú častejšie, bez ohľadu na sterelené góly.
+
+```{r}
+shapiro_df <- sample_n(df, 5000)
+skewness(shapiro_df$goals.home)
+shapiro.test(shapiro_df$goals.home)
+skewness(shapiro_df$goals.away)
+shapiro.test(shapiro_df$goals.away)
+```
+Zo Shapiro-Wilkovho testu môžeme vidieť, že ani jeden z atribútov goals.home a goals.away nemá normálne rozdelenie. Pretože v oboch prípadoch je hodnota p < 0.05.
+
+```{r}
+model_glm = glm(won.home ~ goals.home, data = df, family = "binomial")
+coef(model_glm)
+
+plot(won.home ~ goals.home, data = df, 
+     col = "darkred",
+     main = "Logistic regression for goals.home")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame( goals.home = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+
+model_glm = glm(won.away ~ goals.away, data = df, family = "binomial")
+coef(model_glm)
+
+plot(won.away ~ goals.away, data = df, 
+     col = "darkred",
+     main = "Logistic regression for goals.away")
+abline(h = 0, lty = 3)
+abline(h = 1, lty = 3)
+abline(h = 0.5, lty = 2)
+curve(predict(model_glm, data.frame( goals.away = x), type = "response"), add = TRUE, lwd = 3, col = "dodgerblue")
+abline(v = -coef(model_glm)[1] / coef(model_glm)[2], lwd = 2)
+```
+Podľa regresie môžeme vidieť, že domácemu tímu stačí často streliť menej gólov na výhru, ako hosťujúcemu. Z reálneho hladiska by sme však obe čísla zaokrúhlili na celé číslo 3, pretože góly nemôžeme reprezentovať desatinnými číslami. Logistický regresný model teda potvrdzuje našu hypotézu: Tím, ktorý v zápase strelí viac ako 3 góly (vrátane), pravdepodobne vyhrá.
+
+#### Hypotéza 2.
+Čím je väčší súhrnný počet striel na bránu, tým viac gólov padne v zápase.
+
+Pracujeme s novými atribútmi, ktoré sme si vypočítali súčtom všetkých gólov v hre a súčtom všetkých striel v hre.
+**Atribúty:** shots.home, goals.home, shots.away, goals.away
+
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$goals.home, ylab="Domáci", xlab="", ylim=c(0,1550), xlim=c(0,9), xaxt="n", las=1 , col="slateblue1", breaks=8, main="Počet strelených gólov pre oba tímy")
+par(mar=c(5,5,0,3))
+hist(df$goals.away, main="" , ylab="Hostia", xlab="Goals", ylim=c(0,1550), xlim=c(0,9), las=1 , col="tomato3"  , breaks=8)
+
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$shots.home, ylab="Domáci", xlab="", ylim=, xlim=c(0,70), xaxt="n", las=1 , col="slateblue1", breaks=8, main="Počet striel pre oba tímy")
+par(mar=c(5,5,0,3))
+hist(df$shots.away, main="" , ylab="Hostia", xlab="Shots", ylim=, xlim=c(0,70), las=1 , col="tomato3"  , breaks=6)
+```
+Vidíme, že v domácom prostredí stielajú tímy viac gólov. Viac gólov je výsledkom väčšieho počtu striel na bránku.
+
+```{r}
+hist(df$goals.home+df$goals.away, ylab=, xlab="Goals", ylim=, xlim=c(0,18), las=1 , col="slateblue1", breaks=12, main="Počet strelených gólov v hre")
+
+hist(df$shots.home+df$shots.away, main="Počet striel v hre" , ylab=, xlab="Shots", ylim=, xlim=c(0,120), las=1 , col="tomato3"  , breaks=120)
+```
+```{r}
+shapiro_df <- sample_n(df, 5000)
+skewness(shapiro_df$shots.home+shapiro_df$shots.away)
+shapiro.test(shapiro_df$shots.home+shapiro_df$shots.away)
+skewness(shapiro_df$goals.home+shapiro_df$goals.away)
+shapiro.test(shapiro_df$goals.home+shapiro_df$goals.away)
+```
+Podľa výsledkov Shapiro-Wilkovho testu nie je ani jedna z hodnôt všetkých gólov a všetkých striel v zápase s normálnym rozdelením.
+
+```{r}
+total_shots <- df$shots.home+df$shots.away
+total_goals <- df$goals.home+df$goals.away
+pairs(~ total_shots + total_goals, panel=function(x,y){
+  points(x,y)
+  abline(lm(y~x), col='red')
+})
+```
+
+#### Hypotéza 3.
+Čím je v zápase viac hitov, tým je zápas ostrejší a tým pádom rozhodcovia udelia tímom súhrnne viac trestných minút.
+
+Pri tejto hypotéze pracujeme s diskrétnymi hodnotami. Taktiež sme pracovali s hodnotami súčtu atribútov.
+**Atribúty:** hits.home, pim.home, hits.away, pim.away
+
+```{r}
+hist(df$hits.home+df$hits.away, ylab=, xlab="Hits", ylim=, xlim=c(0,150), las=1 , col="slateblue1", breaks=120, main="Počet osobných súbojov v hre")
+
+hist(df$pim.home+df$pim.away, main="Počet tretných minút v hre" , ylab=, xlab="Penalty in minutes", ylim=, xlim=c(0,150), las=1 , col="tomato3"  , breaks=120)
+```
+
+```{r}
+shapiro_df <- sample_n(df, 5000)
+skewness(shapiro_df$hits.home+shapiro_df$hits.away)
+shapiro.test(shapiro_df$hits.home+shapiro_df$hits.away)
+skewness(shapiro_df$pim.home+shapiro_df$pim.away)
+shapiro.test(shapiro_df$pim.home+shapiro_df$pim.away)
+```
+Oba testy normality nám dokázali, že ani súčet všetkých osobných súbojov v hre a ani súčet všetkých presilovkových minút nemajú normálne rozdelenia.
+
+```{r}
+total_pim <- df$pim.home+df$pim.away
+total_hits <- df$hits.home+df$hits.away
+pairs(~ total_pim + total_hits, panel=function(x,y){
+  points(x,y)
+  abline(lm(y~x), col='red')
+})
+```
+
+
+#### Hypotéza 4.
+Čím má brankár vyššiu úspešnosť zákrokov, tým s väčšou pravdepodobnosťou jeho tím vyhrá.
+
+Atribúty save_percentage boli vypočítané ako pomer počtu zákrokov brankára a počet všetkých striel oponenta. Pri tejto hypotéze pracujeme so spojitými atribútmi - save_percentage a kategorickými atribútmi - won.
+**Atribúty:** save_percentage.home, save_percentage.away, won.home, won.away
+
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$save_percentage.home[df$won.home == 1], main="Úspešnosť brankára (home)" , ylab="Win", xlab="", ylim=c(0,1500), xlim=c(0.55,1) , xaxt="n", las=1 , col="slateblue1", breaks=12)
+par(mar=c(5,5,0,3))
+hist(df$save_percentage.home[df$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1500,0), xlim=c(0.55,1), las=1 , col="tomato3"  , breaks=16)
+
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$save_percentage.away[df$won.away == 1], main="Úspešnosť brankára (away)" , ylab="Win", xlab="", ylim=c(0,1500), xlim=c(0.55,1), xaxt="n", las=1 , col="slateblue1", breaks=12)
+par(mar=c(5,5,0,3))
+hist(df$save_percentage.away[df$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1500,0), xlim=c(0.55,1), las=1 , col="tomato3"  , breaks=16)
+```
+Z grafu vidíme, že v domácom prostredí majú brankári väčšiu úspešnosť zákrokov.
+
+```{r}
+shapiro_df <- sample_n(df, 5000)
+skewness(shapiro_df$save_percentage.home)
+shapiro.test(shapiro_df$save_percentage.home)
+skewness(shapiro_df$save_percentage.away)
+shapiro.test(shapiro_df$save_percentage.away)
+```
+Z testov vidíme, že atribút save_percentage nemá normálne rozdelenie, ani pri domácom, ani pri hosťujúcom tíme.
+
+#### Hypotéza 5.
+Tím, ktorý hrá v domácom prostredí strelí viac gólov v zápase ako hosťujúci tím.
+
+**Atribúty:** goals.home, goals.away
+
+```{r}
+par(mfrow=c(2,1))
+par(mar=c(0,5,3,3))
+hist(df$goals.home, main="Goals" , ylab="Domáci", xlab="", ylim=c(0,1600), xlim=c(0,10), xaxt="n", las=1 , col="slateblue1", breaks=12)
+par(mar=c(5,5,0,3))
+hist(df$goals.away, main="" , ylab="Hostia", xlab="Goals", ylim=c(1600,0), xlim=c(0,10), las=1 , col="tomato3"  , breaks=12)
+```
+Už z grafu vidíme, že domáce tímy strielajú viac gólov, ako hosťujúce. Testo normality gólov sme robili vyššie a pre ani jeden z týchto atribútov nevišiel pozitívne, resp. oba atribúty nemajú normálne rozdelenie.
 
 
 ## Čistenie a úprava dát
