@@ -906,8 +906,63 @@ cbind(lapply(lapply(df, is.na), sum))
 
 Ako môžeme vidieť z výpisu vyššie, dataset už neobsahuje žiadne N/A hodnoty.
 
+### Príprava dát pre tréningový a trénovací dataset
 
+V rámci čistenia dát je potrebné pripraviť dataset, aby bolo možné použiť ho pre strojové učenie, zhlukovú analýzu a Bayesovú štatistiku, pričom treba dataset rozdeliť na tréningový a testovací. Aby bolo možné ho použiť pre tieto účely, je potrebné, aby mal numerické dáta.
+Náš dataset obsahuje 4 nenumerické atribúty: **type**, **settled_in**, **abbreviation.home** a **abbreviation.away**. Atribúty abbreviation nie sú zo štatistického hľadiska dôležité, sú to len skratky jednotlivých tímov. Atribúty **type** a **settled_in** však hovoria o type zápasu (či bol zápas v rámci regulárnej sezóny alebo v rámci vyraďovacej časti) a či bol zápas ukončený v riadnom hracom čase alebo v predĺžení. Oba atribúty teda nadobúdajú práve dve hodnoty a môžeme ich zmeniť na numerické (0 alebo 1).
+Ako prvé zmeníme atribúty **type**:
 
+```{r}
+unique(df$type)
+```
+Ako môžeme vidieť, atribút **type** obsahuje dve hodnoty - "R", ak bol zápas odohraný v rámci regulárnej sezóny, alebo "P", ak bol zápas odohraný v rámci vyraďovacej časti. Tento atribút môžeme nahradiť za **isPlayOff**, pričom tento atribút bude obsahovať hodnotu 0, ak bol zápas odohraný v rámci sezóny (teda pre hodnoty "R") a 1, ak bol odohraný v rámci vyraďovacej časti (teda pre hodnoty "P").
+
+```{r}
+df$isPlayOff <- ifelse(df$type == "P", 1, 0)
+```
+
+Po nahradení môžeme skontrolovať, či boli hodnoty dosadené správne.
+
+```{r}
+unique(df$isPlayOff[df$type == "R"])
+unique(df$isPlayOff[df$type == "P"])
+```
+Môžeme vidieť, že pre hodnoty "R" sme dosadili do atribútu **isPlayOff** hodnoty 0, a pre "P" hodnoty 1. Teraz môžeme atribút **type** odstrániť.
+
+```{r}
+df <- subset(df, select=-c(type))
+df
+```
+
+Podobným spôsobom odstránime aj atribút **settled_in**. Najskôr skontrolujeme, aké hodnoty nadobúda.
+
+```{r}
+unique(df$settled_in)
+```
+Na základe nadobúdaných hodnôt môžeme opäť vytvoriť nový atribút **isOverTime**, pričom tento atribút bude mať hodnotu 1 pre "OT" v atribúte **settled_in** a 0 pre "REG".
+
+```{r}
+df$isOverTime <- ifelse(df$settled_in == "OT", 1, 0)
+```
+
+Opäť skontrolujeme dosadenie hodnôt do nového atribútu.
+
+```{r}
+unique(df$isOverTime[df$settled_in == "REG"])
+unique(df$isOverTime[df$settled_in == "OT"])
+```
+Hodnoty boli dosadené správne a teda môžeme atribút **settled_in** vymazať.
+
+```{r}
+df <- subset(df, select=-c(settled_in))
+df
+```
+
+Keďže sme zmenili dva atribúty na numerické, môžeme opäť vykonať párovú analýzu, pretože je možné, že medzi atribútmi vznikli nové korelácie.
+
+## Prieskumná analýza po čistení dát
+
+### Párová analáza po čistení dát
 
 
 
