@@ -358,7 +358,7 @@ subset(df, won.home==FALSE & won.away==FALSE)
 verify <- subset(df, won.home==FALSE & won.away==FALSE)
 ```
 
-Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa vŠak v datasete nachádza 14x - po pohľade na dáta vieme povedať, že sa nebude jednať o remízy - pre záznamy chýbajú dáta, pravdepodobne sa bude jednať o odložené alebo zrušené zápasy. Žiaden z týchto zápasov však pre naše riešenie nemá pridanú hodnotu - keďže chýbajú všetky relevantné štatistické atribúty (resp. ich hodnota je 0), tieto zápasy môžeme úplne bez problémov z datasetu pri čistení odstrániť - nestratíme totižto žiadnu štatisticky cennú informáciu.
+Výsledok zápasu TRUE TRUE nie je možný. Preto je potrebné skontrolovať, či sa v datasete tento výsledok nenachádza (ak áno je potrebné ho opraviť). Po kontrole s vysužitím funkcie unique sme zistili, že TRUE TRUE sa v datasete nachádza 0x. FALSE FALSE sa však v datasete nachádza 14x - po pohľade na dáta vieme povedať, že sa nebude jednať o remízy - pre záznamy chýbajú dáta, pravdepodobne sa bude jednať o odložené alebo zrušené zápasy. Žiaden z týchto zápasov však pre naše riešenie nemá pridanú hodnotu - keďže chýbajú všetky relevantné štatistické atribúty (resp. ich hodnota je 0), tieto zápasy môžeme úplne bez problémov z datasetu pri čistení odstrániť - nestratíme totižto žiadnu štatisticky cennú informáciu.
 
 ```{r}
 unique(verify$season)
@@ -640,7 +640,7 @@ Hodnoty atribútu veľmi pripomínajú normálne rozdeleni, ale vidíme aj zopá
 **charakteristika:** atribút, ktoréh hodnoty obsahujú iba tri písmená a reprezentuje skratkú tímov., ktoré prosti sebe nastúpili v zápase. Pre nami vybrané sezóny bolo v NHL 31 tímov a teda má tento atribút 31 unikátnych hodnôt.
 
 
-### Atribúty settled_in.home a settled_in.away
+### Atribút settled_in
 **charakteristika:** atribút, ktorý ukazuje ako skončil zápas. V NHL môže zápas skončiť viacerými spôsobmi: v riadnom hracom čase, v predĺžení, po nájazdoch (v starších sezónach), alebo z netradičných dôvodov (roztopenie ľadu, výpadok elektrického prúsu, ...).
 
  
@@ -741,15 +741,15 @@ ggplot(df, aes(x=shots.away, y=goals.away, color=won.away)) + geom_point(size=1)
 ```{r}
 par(mfrow=c(2,1))
 par(mar=c(0,5,3,3))
-hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+hist(df$goals.home[df$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,1600), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
 par(mar=c(5,5,0,3))
-hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
+hist(df$goals.home[df$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1600,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
 
 par(mfrow=c(2,1))
 par(mar=c(0,5,3,3))
-hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+hist(df$goals.away[df$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,1600), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
 par(mar=c(5,5,0,3))
-hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
+hist(df$goals.away[df$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(1600,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
 ```
 
 Rovnako môžeme sledovať aj koreláciu medzi atribútmi **won.away** a **goals.home** alebo **won.home** a **goals.away**. V tomto prípade však budú korelácie záporné:
@@ -870,4 +870,12 @@ df = df[!(is.na(df$shots.away))]
 cbind(lapply(lapply(df, is.na), sum))
 ```
 Ako môžeme vidieť z výpisu vyššie, po odstránení záznamov, ktoré obsahujú N/A hodnoty v atribúte **shots.away**, zmizli všetky N/A hodnoty z celého datasetu, čím sme opäť overili, že všetky N/A hodnoty pochádzali z rovnakých 4 záznamov.
+
+## Štatistické učenie
+
+
+
+
+
+
 
