@@ -526,6 +526,27 @@ plot(df$hits.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame =
 plot(df$hits.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu hits.away")
 ```
 Z grafu hustoty vidíme, že hodnoty sú rozmanité, čo logicky sedí k zápasom NHL. No taktiež vidíme, že niektoré hodnoty sú veľmi riedke, hlavne najväčšie hodnoty a najmenšie. 
+
+```{r}
+sample <- sample_n(df, 1000)
+hist(sample$blocked.home, xlab="Home team hits", main="Histogram reprezentatívnej vzorky atribútu hits.home")
+hist(sample$blocked.away, xlab="Away team hits", main="Histogram reprezentatívnej vzorky atribútu hits.away")
+cat("Štatistika hits.home\n")
+summary(df$hits.home)
+cat("Štatistika vzorky hits.home\n")
+summary(sample$hits.home)
+cat("Štatistika hits.away\n")
+summary(df$hits.away)
+cat("Štatistika vzorky hits.away\n")
+summary(sample$hits.away)
+```
+ Vzorka je na základe interpretácie základnej štatistiky reprezentatívna, vykonáme test normality s hladinou p = 0.05.
+ 
+```{r}
+shapiro.test(sample$hits.home)
+shapiro.test(sample$hits.away)
+```
+ V oboch prípadoch zamietame nulovú hypotézu, rozdelenie z ktorého pochádzajú atribúty **hits.home* a **hits.away** nie je normálne.
  
 ### Atribúty pim.home a pim.away
 **charakteristika:** atribút hovorí o počte trestných minút pre jednotlivé tímy. Keďže sú najčastejšie vylúčenia sankciované dvoma minútami, tak sa budú párne hodnoty vyskytovať častejšie. No poznáme aj dlhšie tresty ako 2+2, 5, 5+2, alebo aj netradičné tresty. Vylúčenia do konca zápasu za nešportové správanie sa do tejto štatistiky nezarátavajú - jedná sa teda o reálnu minutáž, ktorú strávi hráč na trestnej lavici a jeho tím je tým pádom oslabený (osobné tresty neoslabujú tím počas celej dĺžky trestu).
@@ -602,56 +623,126 @@ Z grafov môžeme vidieť, hodnoty atribútu pripomínajú normálne rozdelenie 
 **charakteristika:** atribút reprezentuje počet presilovkových gólov pre oba tímy. Presilovkové góly sú v NHL časté, ale veľké počty presilovkových góolov sú nezvyčajné. Väčšinou je úspešnosť presiloviek okolo 20%, čo znamená jeden gól z piatich presilových hier.
 
 ```{r}
-boxplot(df$powerPlayGoals.home)
-hist(df$powerPlayGoals.home)
-boxplot(df$powerPlayGoals.away)
-hist(df$powerPlayGoals.away)
+boxplot(df$powerPlayGoals.home, ylab = "powerPlayGoals.home", main="Krabicový graf atribútu powerPlayGoals.home")
+hist(df$powerPlayGoals.home, xlab = "powerPlayGoals.home", main="Histogram atribútu powerPlayGoals.home")
+boxplot(df$powerPlayGoals.away, ylab = "powerPlayGoals.away", main="Krabicový graf atribútu powerPlayGoals.away")
+hist(df$powerPlayGoals.away, xlab = "powerPlayGoals.home", main="Histogram atribútu powerPlayGoals.home")
 ```
-Grafy nám odhalili naklonené rozdelenia s malým počtom vychýlených hodnôt, ktoré môžeme neskôr analyzovať.
+Grafy nám odhalili naklonené rozdelenia vpravo s malým počtom vychýlených hodnôt. Krabicové grafy sú pre oba atribúty totožné, čo je zaujímavé. Vyskytuje sa malé množstvo vychýlených hodnôt, konkrétne pri počte gólov v presilovke = 3, 4, 5. Vykreslíme si dodatočne graf rozptýlenia aby sme lepšie zhodnotili, či sú hodnoty naozaj extremálne.
+
+```{r}
+plot(df$powerPlayGoals.home, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu powerPlayGoals.home")
+plot(df$powerPlayGoals.away, pch = 21, bg = "lightgray", col = "black", cex = 0.5, frame = FALSE, main="Graf rozptýlenia atribútu powerPlayGoals.away")
+```
+
+```{r}
+subset(df, powerPlayGoals.home >= 5)
+subset(df, powerPlayGoals.away >= 5)
+```
+Nad jej normalizáciou ale uvažovať neplánujeme, keďže sa jedná o reálnu hodnotu ktorá nesie informáciu o efektívnom NHL tíme v presilovkách. Vo všetkých prípadoch sa však jedná o odliŠné tímy - Colorado, Washington, Vancouver a Tamba Bay - nebude sa pravdepodobne jednať o tím efektívny v presilovkách. Samozrejme, dodatočná analýza týchto hodnôt by bola vhodná, no vzhľadom na to, že tento atribút nepovažujeme za kľúčový z hľadiska hypotéz, sa budeme sústrediť radšej na analýzu iných atribútov.
+
+Vieme povedať, že hodnota 5 gólov sa vyskytuje iba v pár zápasoch, preto ju môžeme považovať za vychýlenú od normy. Keďže však tento atribút neplánujeme špecificky používať pri riešení projektu, normalizáciu neplánujeme vykonávať. V prípade zmeny názoru túto skutočnosť v budúcnosti prehodnotíme.
  
 ### Atribúty faceOffWinPercentage.home a faceOffWinPercentage.away
 **charakteristika:** atribút hovorí o percentuálnom počte vyhratých vhadzovaní. Spolu tvorí atribút pre domácich a hostí 100% vhadovaní. 
 
 ```{r}
-boxplot(df$faceOffWinPercentage.home)
-hist(df$faceOffWinPercentage.home)
-boxplot(df$faceOffWinPercentage.away)
-hist(df$faceOffWinPercentage.away)
+boxplot(df$faceOffWinPercentage.home, ylab= "faceOffWinPercentage.home", main="Krabicový graf atribútu faceOffWinPercentage.home")
+hist(df$faceOffWinPercentage.home, xlab="faceOffWinPercentage.home", main="Histogram atribútu faceOffWinPercentage.home")
+boxplot(df$faceOffWinPercentage.away, ylab="faceOffWinPercentage.away", main="Krabicový graf atribútu faceOffWinPercentage.away")
+hist(df$faceOffWinPercentage.away, xlab= "faceOffWinPercentage.away", main="Histogram atribútu faceOffWinPercentage.away")
 ```
 Atribút sa veľmi podobá normálnemu rozdeleniu, pričom obsahuje zopár vychýlených hôdnot, ako napr. 0, ktorá logicky nedáva zmysel a budeme sa na ňu musieť pozrieť.
+
+```{r}
+subset(df, faceOffWinPercentage.home == 0)
+subset(df, faceOffWinPercentage.away == 0)
+```
+V oboch prípadoch (pri oboch atribútoch) sa jedná o chýbajúce hodnoty záznamov s typom tbc, t.j. preložených alebo zrušených zápasov. Tieto zápasy budú v čistení odstránené, t.j. bude vyriešený problém s touto vychýlenou hodnotou. Ešte môžeme overiť, či súčet atribútov faceOff pre domáci a hosťujúci tím dávajú naozaj hodnotu 100%.
+
+```{r}
+unique(df$faceOffWinPercentage.away + df$faceOffWinPercentage.home == 100)
+```
+Vidíme, ze súčet pravdepodobností nie je vždy rovný 100. Tatkiež dosahuje hodnotu NA v niektorých záznamoch, ale to je očakávané keďže dáta ešte neboli vyčistené. Môžeme sa ale bližšie pozrieť na záznamy, ktoré nedosahujú súčet 100.
+
+```{r}
+subset(df, df$faceOffWinPercentage.away + df$faceOffWinPercentage.home != 100)
+```
+Jedná sa o našich klasických 10 nadbytočných záznamov. Zaujímavé však je, že sa tu naskytuje aj 11-ty záznam z reálneho zápasu medzi San Jose Sharks a Montreal Canadiens.
+```{r}
+38.8 + 61.3
+```
+Tento zápas presahuje maximálnu úspešnosť vhadzovaní o 0.1%. Toto sa pravdepodobne stalo kvôli zaokrúhľovaniu úspešností vhadzovaní jednotlivých tímov. Nejedná sa však o nejakú kritickú chybu, reálne to na dáta a výstup projektu nebude mať žiaden dopad a preto tento problém riešiť nebude potrebné (dalo by sa prípadne odpočítať od každej pravdepodobnosti -0.05 tak, aby bola výsledná hodnota 100).
  
 ### Atribúty giveaways.home a giveaways.away
 **charakteristika:** atribút reprezentujúci odovzdané puky súperiacemu tímu bez súboja. Takýchto situácií sa v zápasoch vyskytuje viacero a nie sú nezvyčajným javom zápasu NHL.
 
 ```{r}
-boxplot(df$giveaways.home)
-hist(df$giveaways.home)
-boxplot(df$giveaways.away)
-hist(df$giveaways.away)
+boxplot(df$giveaways.home, ylab = "giveaways.home", main="Krabicový graf atribútu giveaways.home")
+hist(df$giveaways.home, xlab = "giveaways.home", main="Histogram atribútu giveaways.home")
+boxplot(df$giveaways.away, ylab = "giveaways.away", main="Krabicový graf atribútu giveaways.away")
+hist(df$giveaways.away, xlab = "giveaways.away", main="Histogram atribútu giveaways.away")
 ```
-Hodnoty jemne pripomínajú normálne rozdelenie, ale je tam veľa vychýleých hodnôt, ktoré nemusia znamenať chyby merania.
+Hodnoty jemne pripomínajú normálne rozdelenie, no reálne sa bude jednať o distribúciu naklonenú vpravo. Taktiež je tam veľa vychýleých hodnôt, ktoré však nemusia znamenať chyby merania. Atribút nebudeme analyzovať podrobnejšie z dôvodu, že pre našu prácu ho nepovažujeme za kľúčový.
  
 ### Atribúty takeaways.home a takeaways.away
 **charakteristika:** atribút, ktorý reprezentuje počet odobraných pukov súperiacemu tímu. Tento atribút nie je komplementom vyššie spomenutého atribútu odovzdania pukov.
 
 ```{r}
-boxplot(df$takeaways.home)
-hist(df$takeaways.home)
-boxplot(df$takeaways.away)
-hist(df$takeaways.away)
+boxplot(df$takeaways.home, ylab = "takeaways.home", main="Krabicový graf atribútu takeaways.home")
+hist(df$takeaways.home, xlab = "takeaways.home", main="Histogram atribútu takeaways.home")
+boxplot(df$takeaways.away, ylab = "takeaways.away", main="Krabicový graf atribútu takeaways.away")
+hist(df$takeaways.away, xlab = "takeaways.away", main="Histogram atribútu takeaways.away")
 ```
- 
+Na histograme môžeme vidieť, že sa jedná o distribúciu naklonenú vpravo. Taktiež je tam dosť vychýleých hodnôt, ktoré však opäť nemusia (a pravdepodobne ani nebudú) znamenať chyby merania. Atribút nebudeme analyzovať podrobnejšie z dôvodu, že pre našu prácu ho nepovažujeme za kľúčový (má maximálne len situačné využitie).
+
 ### Atribúty blocked.home a blocked.away
 **charakteristika:** atribút súčtu zablokovaných striel na bránu. hráčmi, inými ako brankár. To znamená, že hráč zablokuje strelu na bránu hokejkou, korčuľou, alebo telom a puk sa vôbec nedostane k brankárovi. Zabkovania strely nie sú nezvyčajné v NHL, ale nevyskytujú sa vo veľkých počtoch, ako napr. strely na bránku.
 
 ```{r}
-boxplot(df$blocked.home)
-hist(df$blocked.home)
-boxplot(df$blocked.away)
-hist(df$blocked.away)
+boxplot(df$blocked.home, ylab="blocked.home", main="Krabicový graf atribútu blocked.home")
+hist(df$blocked.home, xlab="blocked.home", main="Histogram atribútu blocked.home")
+boxplot(df$blocked.away, ylab="blocked.away", main="Krabicový graf atribútu blocked.away")
+hist(df$blocked.away, xlab="blocked.away", main="Histogram atribútu blocked.away")
 ```
-Hodnoty atribútu veľmi pripomínajú normálne rozdeleni, ale vidíme aj zopár vychýlených hodnôt, čo môže byť z dôvodu dlhší hier, napr. kvôli predĺženiu.
- 
+Hodnoty atribútu veľmi pripomínajú normálne rozdeleni, ale vidíme aj zopár vychýlených hodnôt, čo môže byť z dôvodu dlhší hier, napr. kvôli predĺženiu. Atribút **blocked.away** obsahuje jednu výrazne vychýlenú hodnotu, ktorú bude vhodné riešiť pri čistení dát. Distribúcia pripomína normálne rozdelenie, nakreslíme si QQ-plot a pozrieme sa na zhodu s krivkou teoretického normálneho rozdelenia.
+
+
+```{r}
+qqnorm(df$blocked.home, main="Q-Q Plot atribútu blocked.home")
+qqline(df$blocked.home, col = "red", lwd = 2)
+```
+Atribút sa odkláňa od normálnej krivky pri hodnotách >= 20.
+
+```{r}
+qqnorm(df$blocked.away, main="Q-Q Plot atribútu blocked.away")
+qqline(df$blocked.away, col = "red", lwd = 2)
+```
+Atribút sa odkláňa od normálnej krivky pri hodnotách >= 20. Obsahuje jednu výrazne vychýlenú hodnotu (>60). Túto hodnotu bude vhodné redukovať tak, aby nehrozilo skreslenie výsledkov. Vykonáme ešte Shapiro-Wilkov test normality aby sme sa uistili, že atribúty nepochádzajú z normálneho rozdelenia.
+
+Grafy indikujú signifikantnú podobnosť s normálnym rozdelením. Bude preto vhodné vykonať Shapiro-Wilkov test normality, pre ktorý je potrebné vybrať reprezentatívnu vzorku o veľkosti 1000.
+```{r}
+sample <- sample_n(df, 1000)
+hist(sample$blocked.home, xlab="Home team blocked shots", main="Histogram reprezentatívnej vzorky atribútu blocked.home")
+hist(sample$blocked.away, xlab="Away team blocked shots", main="Histogram reprezentatívnej vzorky atribútu blocked.away")
+cat("Štatistika blocked.home\n")
+summary(df$blocked.home)
+cat("Štatistika vzorky blocked.home\n")
+summary(sample$blocked.home)
+cat("Štatistika blocked.away\n")
+summary(df$blocked.away)
+cat("Štatistika vzorky blcoked.away\n")
+summary(sample$blocked.away)
+```
+Vzorka má podobnú varianciu ako pôvodný dataset, preto na nej vykonáme test normality s hladinou p = 0.05.
+
+
+```{r}
+shapiro.test(sample$blocked.home)
+shapiro.test(sample$blocked.away)
+```
+Test v oboch prípadoch zamietame, atribút nepochádza z normálneho rozdelenia. Vychýlenú hodnotu v atribúte **blocked.away** bude vhodné pri čistení dát riešiť.
+
 ### Atribúty abbreviation.home a abbreviation.away
 **charakteristika:** atribút, ktoréh hodnoty obsahujú iba tri písmená a reprezentuje skratkú tímov., ktoré prosti sebe nastúpili v zápase. Pre nami vybrané sezóny bolo v NHL 31 tímov a teda má tento atribút 31 unikátnych hodnôt.
 
