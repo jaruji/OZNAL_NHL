@@ -741,15 +741,15 @@ ggplot(df, aes(x=shots.away, y=goals.away, color=won.away)) + geom_point(size=1)
 ```{r}
 par(mfrow=c(2,1))
 par(mar=c(0,5,3,3))
-hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+hist(df$goals.home[df$won.home == 1], main="Histogram počtu gólov podľa výsledku zápasu (home)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
 par(mar=c(5,5,0,3))
-hist(df_sample_without_na$goals.home[df_sample_without_na$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
+hist(df$goals.home[df$won.home == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=8)
 
 par(mfrow=c(2,1))
 par(mar=c(0,5,3,3))
-hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
+hist(df$goals.away[df$won.away == 1], main="Histogram počtu gólov podľa výsledku zápasu (away)" , ylab="Win", xlab="", ylim=c(0,200), xlim=c(0,11) , xaxt="n", las=1 , col="slateblue1", breaks=8)
 par(mar=c(5,5,0,3))
-hist(df_sample_without_na$goals.away[df_sample_without_na$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
+hist(df$goals.away[df$won.away == 0], main="" , ylab="Loss", xlab="Goals", ylim=c(220,0), xlim=c(0,11), las=1 , col="tomato3"  , breaks=6)
 ```
 
 Rovnako môžeme sledovať aj koreláciu medzi atribútmi **won.away** a **goals.home** alebo **won.home** a **goals.away**. V tomto prípade však budú korelácie záporné:
@@ -799,11 +799,28 @@ Vzťahy medzi atribútmi obshiahnutými v hypotézach bolo možné vidieť už p
 V tejto kapitole sa venujeme čisteniu a úprave dát. Niektoré úpravy sme však spravili už pred analýzou. Tieto úpravy, ako napríklad deduplikáciu dát, bolo potrebné spraviť hneď na začiatku projektu, pretože sa týkali vytvárania datasetu, ktorý v projekte používame. Dataset sme vytvorili spojením 3 tabuliek. Okrem deduplikácie dát sme tiež odstránili niektoré atribúty a iné sme naopak pridali, respektíve vytvorili (ako napríklad vytvorenie atribútu úspešnosti brankára, ktorá sa počíta na základe gólov a striel oponenta).
 Cieľom tejto kapitoly je, aby všetky záznamy obsahovali údaje pre všetky atribúty. Je teda potrebné odstrániť všetky N/A hodnoty.
 Z analýzy atribútu **type** vieme, že náš dataset obsahuje výsledky niektorých zápasov, ktoré nespadajú do súťaže NHL. Pre začiatok sa pozrieme, aké atribúty obsahujú N/A hodnoty a následne odstránime dané zápasy, ktoré nepatria do NHL (takéto zápasy majú hodnotu atribútu **type** rovnú 'A').
+Ako prvé však odstránime vychýlenú hodnotu z atribútu **shots.home**.
+
+```{r}
+boxplot(df$shots.home, ylab="Home shots", xlab="", main="Krabicový graf striel na bránu domáceho tímu")
+```
+Vychýlenú hodnotu nahradíme 75% kvantilom počtu striel domácich tímov v zápasoch, ktoré sa dohrali v predĺžení.
+
+```{r}
+df$shots.home[df$shots.home > 70] = quantile(df$shots.home[df$settled_in == 'OT'], 0.75)
+```
+
+Teraz skontrolujeme, či sa vychýlená hodnota nahradila.
+
+```{r}
+boxplot(df$shots.home, ylab="Home shots", xlab="", main="Krabicový graf striel na bránu domáceho tímu")
+```
+Na krabicovom grafe vyššie môžeme vidieť, že sme vychýlenú hodnotu zrazili. Teraz prejdeme na odstránenie N/A hodnôt. Ako prvé zistíme, ktoré všetky atribúty obsahujú N/A hodnoty.
 
 ```{r}
 cbind(lapply(lapply(df, is.na), sum))
 ```
-Teraz môžeme odstrániť spomínané zápasy, ktoré nepatria pod NHL.
+Ako bolo spomenuté, niektoré zápasy napatria do súťaže NHL. Niektoré atribúty môžu obsahovať N/A hodnoty práve z tohto dôvodu. Najskôr odstránime spomínané zápasy.
 
 ```{r}
 table(df$type)
@@ -821,7 +838,7 @@ Môžeme si všimnúť, že zmizli všetky N/A hodnoty atribútov **abbrevation.
 df[is.na(df$shots.away)]
 ```
 
-Z výpisu záznamov, ktoré obsahujú N/A hodnotu v atribúte **shots_away** si môžeme všimnúť, že aj ďalšie atribúty majú N/A hodnoty. Môžeme predpokladať, že všetky N/A hodnoty v našom datasete sú obsiahnuté v práve týchto 4 konkrétnych zápasoch. Vypíšeme si čísla tímov jednotlivých atribútov, ktoré obsahujú N/A hodnoty. Ak sa čísla tímov budú zhodovať, znamená to, že všetky N/A hodnoty sú obsiahnuté v spomínaných 4 zápasoch.
+Z výpisu záznamov, ktoré obsahujú N/A hodnotu v atribúte **shots_away** si môžeme všimnúť, že aj ďalšie atribúty majú N/A hodnoty. Môžeme predpokladať, že všetky N/A hodnoty (okrem atribútov **save_percentage.home** a **save_percentage.away**) v našom datasete sú obsiahnuté v práve týchto 4 konkrétnych zápasoch. Vypíšeme si čísla tímov jednotlivých atribútov, ktoré obsahujú N/A hodnoty. Ak sa čísla tímov budú zhodovať, znamená to, že všetky N/A hodnoty sú obsiahnuté v spomínaných 4 zápasoch.
 
 ```{r}
 df$team_id.away[is.na(df$shots.away)]
@@ -869,5 +886,30 @@ Z výpisov môžeme vidieť, že sa čísla tímov pre všetky atribúty obsahuj
 df = df[!(is.na(df$shots.away))]
 cbind(lapply(lapply(df, is.na), sum))
 ```
-Ako môžeme vidieť z výpisu vyššie, po odstránení záznamov, ktoré obsahujú N/A hodnoty v atribúte **shots.away**, zmizli všetky N/A hodnoty z celého datasetu, čím sme opäť overili, že všetky N/A hodnoty pochádzali z rovnakých 4 záznamov.
+Ako môžeme vidieť z výpisu vyššie, po odstránení záznamov, ktoré obsahujú N/A hodnoty v atribúte **shots.away**, zmizli všetky N/A hodnoty z celého datasetu okrem atribútov **save_percentage.home** a **save_percentage.away**. Teraz skontrolujeme tieto dva atribúty.
+
+```{r}
+df[is.na(df$save_percentage.away)]
+```
+
+Z výpisu vyššie môžeme vidieť, že 10 N/A hodnôt v **save_percentage.home** je pri rovnakých zápasoch ako pri atribúte **save_percentage.away**. Tiež si môžeme všimnúť, že tieto hodnoty vznikli z dôvodu delenia nulou (pri výpočte save_percentage vyhádzame z rozdielu počtu striel a počtu gólov, pričom výsledok ešte delíme počtom striel, t. j. v prípade, že počet striel je 0, výsledkom je NaN, pretože nulou nedelíme). Tiež si môžeme všimnúť, že všetky ostatné atribúty v týchto zápasoch majú hodnotu 0. Aj keby sme nahradili save_percentage 100-percentnou úspešnosťou, nemali by nás tieto zápasy žiadnu výpovednú hodnotu. Tieto zápasy teda môžeme odstrániť.
+
+```{r}
+df = df[!(is.na(df$save_percentage.away))]
+```
+
+Po odstránení spomínaných zápasov overíme, že dataset už neobsahuje žiadne N/A hodnoty.
+
+```{r}
+cbind(lapply(lapply(df, is.na), sum))
+```
+
+Ako môžeme vidieť z výpisu vyššie, dataset už neobsahuje žiadne N/A hodnoty.
+
+
+
+
+
+
+
 
